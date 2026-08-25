@@ -35,15 +35,31 @@ async def ask(req: AskRequest):
                 payload = {"node": node_name}
                 if "docs" in node_output:
                     payload["docs"] = [
-                        {"source": d.metadata.get("source"), "page": d.metadata.get("page_label")}
-                        for d in node_output["docs"]
+                         {
+                            "source": d.metadata.get("source", "unknown"),
+                            "page": d.metadata.get(
+                                "page_label",
+                                d.metadata.get("page"),
+                            ),
+                            "excerpt": d.page_content[:400],
+                         }
+                    for d in node_output["docs"]
                     ]
+                
                 if "grade" in node_output:
                     payload["grade"] = node_output["grade"]
                 if "retries" in node_output:
                     payload["retries"] = node_output["retries"]
                 if "answer" in node_output:
                     payload["answer"] = node_output["answer"]
+                if "evidence_status" in node_output:
+                    payload["evidence_status"] = node_output["evidence_status"]
+                if "evidence_confidence" in node_output:
+                    payload["evidence_confidence"] = node_output["evidence_confidence"]
+
+                if "evidence" in node_output:
+                    payload["evidence"] = node_output["evidence"]
+
 
                 yield {"event": "node", "data": json.dumps(payload)}
 
