@@ -20,3 +20,17 @@ chroma_db/
 
 # Backup files created during experiments
 *.bak_*
+
+# Local vector indexes and backups
+chroma_db/
+chroma_db_hf/
+chroma_db_gemini_backup_*/
+
+# Local diagnostic scripts and outputs
+debug_*.py
+debug_*.txt
+direct_*.txt
+generation_context.txt
+expanded_*.txt
+validate_expanded_retrieval.py
+retry_smoke.txt
