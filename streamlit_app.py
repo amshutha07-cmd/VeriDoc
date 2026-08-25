@@ -129,10 +129,10 @@ st.markdown(
     .brand { font-size:1.35rem; font-weight:800; letter-spacing:-.03em; }
     .brand-mark { color:#59d3c5; }
     .top-status { color:#a9bdd4; font-size:.84rem; }
-    .panel { background:#ffffff; border:1px solid #dbe4ef; border-radius:16px; padding:1rem; min-height:660px; box-shadow:0 8px 22px rgba(21,45,75,.06); }
+    .panel { background:#ffffff; border:1px solid #dbe4ef; border-radius:16px; padding:1rem; min-height:0; box-shadow:0 8px 22px rgba(21,45,75,.06); }
     .panel-title { color:#102a43; font-size:1.02rem; font-weight:800; margin-bottom:.75rem; }
     .panel-subtitle { color:#718096; font-size:.8rem; margin-bottom:1rem; }
-    .chat-panel { background:#0d1d35; border:1px solid #203c60; border-radius:16px; padding:1.25rem; min-height:660px; color:#eaf3ff; box-shadow:0 12px 28px rgba(12,29,53,.18); }
+    .chat-panel { background:#0d1d35; border:1px solid #203c60; border-radius:16px; padding:1.25rem; min-height:0; color:#eaf3ff; box-shadow:0 12px 28px rgba(12,29,53,.18); }
     .chat-panel h3 { color:#ffffff !important; }
     .question-label { color:#a9c1da; font-size:.82rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
     .user-bubble { background:#174d78; color:#f7fbff; border-radius:14px 14px 4px 14px; padding:.8rem 1rem; margin:1rem 0; }
@@ -159,7 +159,7 @@ st.markdown(
 
 left, center, right = st.columns([1.05, 2.25, 1.35], gap="medium")
 
-with left:
+with left.container(border=True):
     st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.markdown('<div class="panel-title">Knowledge base</div>', unsafe_allow_html=True)
     st.markdown('<div class="panel-subtitle">Your indexed documents</div>', unsafe_allow_html=True)
@@ -191,9 +191,8 @@ with left:
         st.markdown(f'<div class="source-card"><div class="source-title">{name}</div><div class="source-meta">Custom document</div><span class="pill">Added</span></div>', unsafe_allow_html=True)
 
     st.markdown('<div class="panel-subtitle">Upload a document to ask questions about its contents. Unsupported questions are refused instead of invented.</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
 
-with center:
+with center.container(border=True):
     st.markdown('<div class="chat-panel">', unsafe_allow_html=True)
     st.markdown('<div class="question-label">Ask your documents</div>', unsafe_allow_html=True)
     question = st.text_area("Question", value="What are Apple's main risk factors?", height=90, label_visibility="collapsed", placeholder="Ask a question about your documents…")
@@ -233,9 +232,7 @@ with center:
     else:
         st.markdown('<div class="answer-card" style="margin-top:1rem;color:#66788c">Your grounded answer will appear here, together with the retrieval path used to produce it.</div>', unsafe_allow_html=True)
 
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with right:
+with right.container(border=True):
     st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.markdown('<div class="panel-title">Evidence sources</div>', unsafe_allow_html=True)
     st.markdown('<div class="panel-subtitle">Sources selected for the current answer</div>', unsafe_allow_html=True)
@@ -250,4 +247,3 @@ with right:
     else:
         st.info("Run a question to see the cited source cards here.")
 
-    st.markdown('</div>', unsafe_allow_html=True)
