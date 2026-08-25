@@ -62,6 +62,39 @@ def clean_text(value) -> str:
     return " ".join(str(value or "").split())
 
 
+def display_metadata(item: dict) -> tuple[str, str]:
+    """Use loader metadata first, then derive friendly labels from the filename."""
+    source = str(item.get("source", "")).lower()
+    organization = item.get("organization")
+    category = item.get("category")
+
+    if not organization or organization == "Unknown":
+        if "nvidia" in source:
+            organization = "NVIDIA"
+        elif "microsoft" in source:
+            organization = "Microsoft"
+        elif "amazon" in source:
+            organization = "Amazon"
+        elif "apple" in source or "aapl" in source:
+            organization = "Apple"
+        elif "world_bank" in source or "worldbank" in source:
+            organization = "World Bank"
+        else:
+            organization = "Reference Source"
+
+    if not category or category == "Unknown":
+        if any(term in source for term in ("education", "principles", "business", "data_science", "information_systems")):
+            category = "Educational Reference"
+        elif any(term in source for term in ("macro", "economics", "world_bank")):
+            category = "Macroeconomic Report"
+        elif any(term in source for term in ("10k", "annual_report", "filing", "aapl-")):
+            category = "Corporate Filing"
+        else:
+            category = "Reference Document"
+
+    return str(organization), str(category)
+
+
 st.markdown(
     """
     <style>
@@ -154,8 +187,7 @@ if run:
             for item in evidence:
                 source = item.get("source", "unknown")
                 page = item.get("page", "?")
-                organization = item.get("organization", "Unknown")
-                category = item.get("category", "Unknown")
+                organization, category = display_metadata(item)
                 excerpt = clean_text(item.get("excerpt", ""))
                 cards.append(f"<div class='evidence-card'><div class='evidence-source'>{organization} · {category} · {source} · Page {page}</div><div class='evidence-excerpt'>{excerpt}</div></div>")
             evidence_box.markdown("\n".join(cards), unsafe_allow_html=True)
@@ -169,3 +201,4 @@ if run:
         st.error(f"ProofLoop startup or execution failed: {exc}")
 else:
     st.info("Enter a question and select Run ProofLoop to see the live retrieval trace and evidence cards.")
+
