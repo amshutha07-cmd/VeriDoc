@@ -1,0 +1,15 @@
+﻿services:
+  - type: web
+    name: proofloop-streamlit
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: sh -c "uvicorn app.main:app --host 127.0.0.1 --port 8000 & streamlit run streamlit_app.py --server.address 0.0.0.0 --server.port $PORT"
+    envVars:
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: EMBEDDING_PROVIDER
+        value: huggingface
+      - key: CHROMA_PERSIST_DIR
+        value: ./chroma_db_hf
+      - key: PYTHONIOENCODING
+        value: utf-8
