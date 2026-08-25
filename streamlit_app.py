@@ -157,7 +157,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-left, center, right = st.columns([1.05, 2.25, 1.35], gap="medium")
+left, center, right = st.columns([1.08, 2.55, 1.42], gap="large")
 
 with left.container(border=True):
     st.markdown('<div class="panel-title">Knowledge base</div>', unsafe_allow_html=True)
@@ -290,5 +290,161 @@ st.markdown("""
 .source-meta, .evidence-excerpt, .source-text { color:#b6c8da !important; }
 .pill { background:#174f55 !important; color:#a9eee2 !important; }
 [data-testid="stAlert"] { border-radius:10px !important; }
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<style>
+/* Final composition pass: full-page dark research workspace */
+.stApp {
+    background:
+        radial-gradient(circle at 8% 12%, rgba(36,137,164,.16) 0, rgba(36,137,164,0) 24rem),
+        radial-gradient(circle at 92% 22%, rgba(92,72,180,.14) 0, rgba(92,72,180,0) 28rem),
+        #07111f !important;
+    min-height:100vh !important;
+}
+
+/* Abstract background shapes, intentionally soft and non-rectangular. */
+[data-testid="stAppViewContainer"]::before {
+    content:"";
+    position:fixed;
+    width:320px;
+    height:320px;
+    right:-130px;
+    bottom:80px;
+    border-radius:48% 52% 63% 37% / 43% 38% 62% 57%;
+    background:rgba(21,151,157,.08);
+    filter:blur(2px);
+    pointer-events:none;
+    z-index:0;
+}
+[data-testid="stAppViewContainer"]::after {
+    content:"";
+    position:fixed;
+    width:230px;
+    height:230px;
+    left:-100px;
+    top:190px;
+    border-radius:61% 39% 46% 54% / 45% 58% 42% 55%;
+    background:rgba(72,92,192,.09);
+    filter:blur(3px);
+    pointer-events:none;
+    z-index:0;
+}
+
+.main .block-container {
+    max-width:1500px !important;
+    width:calc(100% - 4rem) !important;
+    margin:0 auto !important;
+    padding:1.6rem 0 4rem !important;
+    position:relative;
+    z-index:1;
+}
+
+.topbar {
+    width:100% !important;
+    min-height:72px !important;
+    box-sizing:border-box !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    gap:1rem !important;
+    overflow:visible !important;
+    padding:1rem 1.6rem !important;
+    margin:0 0 1.4rem !important;
+    border:1px solid #294b6b !important;
+    border-radius:18px !important;
+    background:linear-gradient(105deg,#0e2742 0%,#0b1a30 62%,#112c47 100%) !important;
+    box-shadow:0 12px 32px rgba(0,0,0,.24) !important;
+}
+.brand {
+    display:flex !important;
+    align-items:center !important;
+    gap:.55rem !important;
+    color:#ffffff !important;
+    font-size:1.5rem !important;
+    font-weight:850 !important;
+    line-height:1.3 !important;
+    white-space:nowrap !important;
+    overflow:visible !important;
+}
+.brand-mark {
+    display:inline-block !important;
+    color:#62e0d0 !important;
+    font-size:1.35rem !important;
+    line-height:1 !important;
+}
+.top-status {
+    color:#afc7dc !important;
+    font-size:.84rem !important;
+    line-height:1.35 !important;
+    white-space:nowrap !important;
+}
+
+[data-testid="column"] {
+    min-width:0 !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"] {
+    min-height:0 !important;
+    height:auto !important;
+    padding:1.05rem !important;
+    border-radius:18px !important;
+    background:rgba(12,27,45,.94) !important;
+    border:1px solid #294b6b !important;
+    box-shadow:0 12px 28px rgba(0,0,0,.14) !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"] > div,
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stVerticalBlock"] {
+    min-height:0 !important;
+}
+
+/* Better rhythm between Streamlit blocks. */
+[data-testid="stVerticalBlock"] > [data-testid="element-container"] {
+    margin-bottom:.35rem !important;
+}
+.stMarkdown { line-height:1.5 !important; }
+
+/* Keep uploader visible, shaped, and comfortably padded. */
+[data-testid="stFileUploader"] {
+    margin:.4rem 0 .8rem !important;
+    padding:.7rem !important;
+    min-height:112px !important;
+    border-radius:16px !important;
+    background:linear-gradient(145deg,#112b47,#0e2037) !important;
+    border:1px dashed #4b829e !important;
+}
+[data-testid="stFileUploader"] section {
+    min-height:92px !important;
+    background:transparent !important;
+}
+[data-testid="stFileUploader"] section > div {
+    color:#c9d9e8 !important;
+}
+
+/* The center becomes the visual focal point. */
+.chat-panel {
+    min-height:0 !important;
+    padding:.15rem !important;
+}
+.chat-panel .answer-card {
+    margin-top:1rem !important;
+    min-height:130px !important;
+}
+.trace-card {
+    margin-top:1rem !important;
+    padding:1rem 1.1rem !important;
+}
+
+.source-card, .evidence-card {
+    margin:.72rem 0 !important;
+    padding:.9rem !important;
+    border-radius:14px !important;
+}
+
+@media (max-width: 900px) {
+    .main .block-container { width:calc(100% - 1.5rem) !important; padding-top:1rem !important; }
+    .topbar { align-items:flex-start !important; flex-direction:column !important; }
+    .top-status { white-space:normal !important; }
+}
 </style>
 """, unsafe_allow_html=True)
