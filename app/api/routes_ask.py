@@ -1,5 +1,5 @@
-"""
-POST /ask — streams the graph's node-by-node execution as Server-Sent Events.
+﻿"""
+POST /ask â€” streams the graph's node-by-node execution as Server-Sent Events.
 """
 import json
 from fastapi import APIRouter
@@ -41,7 +41,11 @@ async def ask(req: AskRequest):
                                 "page_label",
                                 d.metadata.get("page"),
                             ),
-                            "excerpt": d.page_content[:400],
+                            "excerpt": " ".join(d.page_content[:400].split()),
+                            "organization": d.metadata.get("organization", "Unknown"),
+                            "category": d.metadata.get("category", "Unknown"),
+                            "document_type": d.metadata.get("document_type", "Unknown"),
+                            "publication_year": d.metadata.get("publication_year"),
                          }
                     for d in node_output["docs"]
                     ]

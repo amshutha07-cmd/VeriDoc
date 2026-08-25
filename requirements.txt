@@ -7,4 +7,5 @@ langchain-huggingface
 langchain-chroma
 chromadb
 pydantic-settings
-sentence-transformers
+sentence-transformersstreamlit
+requests
