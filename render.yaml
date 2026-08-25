@@ -2,7 +2,7 @@
   - type: web
     name: proofloop-streamlit
     runtime: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python render_fetch.py && python -m app.ingestion.vector_store
     startCommand: sh -c "uvicorn app.main:app --host 127.0.0.1 --port 8000 & streamlit run streamlit_app.py --server.address 0.0.0.0 --server.port $PORT"
     envVars:
       - key: OPENROUTER_API_KEY
@@ -13,3 +13,4 @@
         value: ./chroma_db_hf
       - key: PYTHONIOENCODING
         value: utf-8
+
