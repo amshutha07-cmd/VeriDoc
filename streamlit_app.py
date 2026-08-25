@@ -130,6 +130,75 @@ with st.sidebar:
     st.markdown("---")
     st.caption("Corpus: corporate filings, macroeconomic reports, and educational references.")
 
+
+def ingest_uploaded_document(uploaded_file):
+    """Add one uploaded PDF/DOCX to the existing Chroma collection."""
+    import hashlib
+    import tempfile
+    from pathlib import Path
+
+    from app.ingestion.chunker import chunk_documents
+    from app.ingestion.loader import load_single_docx, load_single_pdf
+    from app.ingestion.vector_store import build_store
+
+    file_bytes = uploaded_file.getvalue()
+    file_hash = hashlib.sha256(file_bytes).hexdigest()
+    suffix = Path(uploaded_file.name).suffix.lower()
+    if suffix not in (".pdf", ".docx"):
+        raise ValueError("Only PDF and DOCX files are supported.")
+
+    temp_path = Path(tempfile.gettempdir()) / f"proofloop_upload_{file_hash[:12]}{suffix}"
+    temp_path.write_bytes(file_bytes)
+
+    if suffix == ".pdf":
+        docs = load_single_pdf(str(temp_path))
+    else:
+        docs = load_single_docx(str(temp_path))
+
+    # Preserve the user-visible filename instead of exposing the temporary path.
+    for doc in docs:
+        doc.metadata["source"] = uploaded_file.name
+        doc.metadata["file_path"] = uploaded_file.name
+        doc.metadata["document_type"] = "uploaded_document"
+        doc.metadata["source_url"] = ""
+
+    chunks = chunk_documents(docs)
+    if not chunks:
+        raise ValueError("No readable text was found in the uploaded document.")
+
+    build_store(chunks)
+    return len(docs), len(chunks), file_hash
+
+
+with st.sidebar:
+    st.markdown("---")
+    st.markdown("### Add a custom document")
+    uploaded_file = st.file_uploader(
+        "Upload PDF or DOCX",
+        type=["pdf", "docx"],
+        help="The document is added to this cloud instance's ProofLoop index.",
+    )
+    add_document = st.button("Add to ProofLoop", use_container_width=True)
+
+if add_document:
+    if uploaded_file is None:
+        st.warning("Choose a PDF or DOCX file first.")
+    else:
+        uploaded_hash = __import__("hashlib").sha256(uploaded_file.getvalue()).hexdigest()
+        already_added = uploaded_hash in st.session_state.get("uploaded_hashes", set())
+        if already_added:
+            st.info("This document is already in the current ProofLoop session.")
+        else:
+            try:
+                with st.spinner(f"Indexing {uploaded_file.name}…"):
+                    prepare_proofloop()
+                    pages, chunks, _ = ingest_uploaded_document(uploaded_file)
+                st.session_state.setdefault("uploaded_hashes", set()).add(uploaded_hash)
+                st.success(f"Added {uploaded_file.name}: {pages} pages, {chunks} searchable chunks.")
+                st.info("You can now ask questions about this document below.")
+            except Exception as exc:
+                st.error(f"Document indexing failed: {exc}")
+
 question = st.text_area(
     "Ask a question about the indexed documents",
     value="What are Apple's main risk factors?",
@@ -201,4 +270,5 @@ if run:
         st.error(f"ProofLoop startup or execution failed: {exc}")
 else:
     st.info("Enter a question and select Run ProofLoop to see the live retrieval trace and evidence cards.")
+
 
