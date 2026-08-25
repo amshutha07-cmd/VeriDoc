@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from app.core.state import RAGState
 from app.graph.llm_client import llm
 from app.graph.prompts import format_ctx
-
+import re
 MIN_RERANK_SCORE = 0.0   # cross-encoder logits; tuned empirically, see log
 
 
@@ -59,19 +59,40 @@ def _key_terms(question: str) -> list[str]:
     stopwords = {"what", "is", "are", "the", "a", "an", "of", "for", "to", "in", "on", "and", "or"}
     return [w.lower().strip("?.,") for w in question.split() if w.lower() not in stopwords and len(w) > 2]
 
+def _strong_local_evidence(question: str, context: str) -> bool:
+    """Return True only when lexical evidence is strong and constraints match."""
+    question_lower = question.lower()
+    context_lower = context.lower()
+
+    terms = _key_terms(question)
+    if not terms:
+        return False
+
+    hits = sum(1 for term in terms if term in context_lower)
+    lexical_ratio = hits / len(terms)
+
+    # Never bypass the LLM grader when the question contains a specific
+    # year/number that is absent from the retrieved evidence.
+    requested_numbers = re.findall(r"\b(?:19|20)\d{2}\b|\b\d+(?:\.\d+)?%?\b", question_lower)
+    if any(number not in context_lower for number in requested_numbers):
+        return False
+
+    return lexical_ratio >= 0.60
 
 def grade_docs_v2(state: RAGState) -> dict:
-    """Grade retrieved context without using an arbitrary logit cutoff.
+    """Grade evidence using a fast local gate, then LLM verification when needed."""
+    context = format_ctx(state["docs"])
 
-    Cross-encoder scores are ranking logits, not calibrated probabilities, so
-    they should not be rejected using a universal zero threshold. The LLM
-    verdict and lexical evidence determine whether rewriting is necessary.
-    """
-    ctx = format_ctx(state["docs"])
-    llm_verdict = _llm_grade(state["question"], ctx)
+    # Fast path for clearly supported questions. This avoids an unnecessary
+    # remote grading call and reduces latency/API usage.
+    if _strong_local_evidence(state["question"], context):
+        return {"grade": "useful"}
 
+    # Ambiguous questions still use the LLM grader and can enter the rewrite
+    # loop. Specific missing years/numbers are deliberately not fast-pathed.
+    llm_verdict = _llm_grade(state["question"], context)
     terms = _key_terms(state["question"])
-    lexical_hit = any(term in ctx.lower() for term in terms) if terms else True
+    lexical_hit = any(term in context.lower() for term in terms) if terms else True
 
     if llm_verdict == "useful" and lexical_hit:
         return {"grade": "useful"}
