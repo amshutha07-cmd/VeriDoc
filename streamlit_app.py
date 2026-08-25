@@ -111,12 +111,118 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Product-style light theme layered over the original layout.
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background: #f5f8fc;
+        color: #172033;
+    }
+    [data-testid="stHeader"] {
+        background: rgba(245,248,252,.92);
+    }
+    [data-testid="stSidebar"] {
+        background: #ffffff;
+        border-right: 1px solid #e3eaf3;
+    }
+    [data-testid="stSidebar"] .block-container {
+        padding: 2rem 1.25rem;
+    }
+    .block-container {
+        max-width: 1180px;
+        padding-top: 2.2rem;
+        padding-bottom: 4rem;
+    }
+    .hero {
+        padding: 2.25rem 2.4rem;
+        border: 1px solid #dce8f5;
+        border-radius: 22px;
+        background: linear-gradient(135deg, #ffffff 0%, #edf6ff 58%, #e5f7f4 100%);
+        box-shadow: 0 12px 34px rgba(26, 63, 99, .08);
+        margin-bottom: 1.7rem;
+    }
+    .hero h1 {
+        color: #102a43;
+        font-size: 2.7rem;
+        font-weight: 800;
+        letter-spacing: -.055em;
+        margin: 0 0 .4rem;
+    }
+    .hero p {
+        color: #52677d;
+        font-size: 1.04rem;
+        margin: .16rem 0;
+    }
+    h1, h2, h3, label, p, .stMarkdown {
+        color: #172033;
+    }
+    [data-testid="stTextArea"] textarea {
+        background: #ffffff;
+        color: #172033;
+        border: 1px solid #cddbea;
+        border-radius: 14px;
+        box-shadow: 0 4px 14px rgba(26,63,99,.04);
+    }
+    [data-testid="stTextArea"] textarea:focus {
+        border-color: #228be6;
+        box-shadow: 0 0 0 2px rgba(34,139,230,.14);
+    }
+    .stButton button {
+        border: 0;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #1677d2, #12a594);
+        color: #ffffff;
+        font-weight: 700;
+        box-shadow: 0 7px 16px rgba(22,119,210,.22);
+        min-height: 2.7rem;
+    }
+    .stButton button:hover {
+        background: linear-gradient(135deg, #0d63b5, #078c7f);
+        color: #ffffff;
+    }
+    [data-testid="stFileUploader"] {
+        background: #f7fbff;
+        border: 1px dashed #a9c7e5;
+        border-radius: 14px;
+        padding: .35rem;
+    }
+    [data-testid="stAlert"] {
+        border-radius: 12px;
+        border: 1px solid #d8e6f2;
+    }
+    .evidence-card {
+        border: 1px solid #d8e4ef;
+        border-radius: 14px;
+        background: #ffffff;
+        padding: 1.05rem 1.15rem;
+        margin: .72rem 0;
+        box-shadow: 0 5px 16px rgba(25, 58, 92, .055);
+    }
+    .evidence-source {
+        color: #087f78;
+        font-weight: 750;
+        font-size: .9rem;
+    }
+    .evidence-excerpt {
+        color: #4b5d70;
+        line-height: 1.62;
+        margin-top: .58rem;
+    }
+    .stCaption {
+        color: #718096;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 st.markdown(
     """
     <div class="hero">
       <h1>ProofLoop</h1>
-      <p>Evidence-first Corrective RAG for financial and business documents.</p>
-      <p>Retrieve. Rerank. Grade. Correct. Cite.</p>
+      <p><strong>Evidence-first Corrective RAG</strong> for financial and business documents.</p>
+      <p>Retrieve clearly. Correct weak evidence. Cite every answer.</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -270,5 +376,6 @@ if run:
         st.error(f"ProofLoop startup or execution failed: {exc}")
 else:
     st.info("Enter a question and select Run ProofLoop to see the live retrieval trace and evidence cards.")
+
 
 
