@@ -160,7 +160,6 @@ st.markdown(
 left, center, right = st.columns([1.05, 2.25, 1.35], gap="medium")
 
 with left.container(border=True):
-    st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.markdown('<div class="panel-title">Knowledge base</div>', unsafe_allow_html=True)
     st.markdown('<div class="panel-subtitle">Your indexed documents</div>', unsafe_allow_html=True)
 
@@ -193,7 +192,6 @@ with left.container(border=True):
     st.markdown('<div class="panel-subtitle">Upload a document to ask questions about its contents. Unsupported questions are refused instead of invented.</div>', unsafe_allow_html=True)
 
 with center.container(border=True):
-    st.markdown('<div class="chat-panel">', unsafe_allow_html=True)
     st.markdown('<div class="question-label">Ask your documents</div>', unsafe_allow_html=True)
     question = st.text_area("Question", value="What are Apple's main risk factors?", height=90, label_visibility="collapsed", placeholder="Ask a question about your documents…")
     run = st.button("Run ProofLoop  →", type="primary", use_container_width=True)
@@ -233,7 +231,6 @@ with center.container(border=True):
         st.markdown('<div class="answer-card" style="margin-top:1rem;color:#66788c">Your grounded answer will appear here, together with the retrieval path used to produce it.</div>', unsafe_allow_html=True)
 
 with right.container(border=True):
-    st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.markdown('<div class="panel-title">Evidence sources</div>', unsafe_allow_html=True)
     st.markdown('<div class="panel-subtitle">Sources selected for the current answer</div>', unsafe_allow_html=True)
 
@@ -247,3 +244,51 @@ with right.container(border=True):
     else:
         st.info("Run a question to see the cited source cards here.")
 
+
+st.markdown("""
+<style>
+/* Final ProofLoop dark theme override */
+.stApp, [data-testid="stAppViewContainer"] { background:#07111f !important; color:#e7eef7 !important; }
+[data-testid="stHeader"] { background:#07111f !important; }
+.block-container { max-width:1500px !important; padding:1.25rem 2rem 3rem !important; }
+[data-testid="stSidebar"] { background:#0b1628 !important; border-right:1px solid #203752 !important; }
+[data-testid="stSidebar"] * { color:#d9e6f4 !important; }
+
+.topbar { min-height:62px !important; height:auto !important; overflow:visible !important; display:flex !important; align-items:center !important; padding:1rem 1.4rem !important; background:#0b1b31 !important; border:1px solid #244463 !important; border-radius:14px !important; margin:0 0 1.1rem !important; }
+.brand { color:#ffffff !important; font-size:1.35rem !important; line-height:1.25 !important; white-space:nowrap !important; }
+.brand-mark { color:#56d6c7 !important; }
+.top-status { color:#a9bfd6 !important; line-height:1.3 !important; }
+
+[data-testid="stVerticalBlockBorderWrapper"] { background:#0c1b2d !important; border:1px solid #264968 !important; border-radius:14px !important; padding:.85rem !important; min-height:0 !important; }
+[data-testid="stVerticalBlockBorderWrapper"] > div { min-height:0 !important; }
+
+.panel-title, h1, h2, h3, label, .stMarkdown { color:#e7eef7 !important; }
+.panel-subtitle, .stCaption { color:#91a9c1 !important; }
+
+.chat-panel { background:#0c1b2d !important; color:#e7eef7 !important; border:0 !important; min-height:0 !important; padding:0 !important; }
+.chat-panel h3, .question-label { color:#ffffff !important; }
+.answer-card { background:#f4f8fc !important; color:#1a2a3e !important; border-radius:12px !important; padding:1rem 1.1rem !important; }
+.user-bubble { background:#1b527c !important; color:#ffffff !important; border-radius:12px !important; padding:.8rem 1rem !important; }
+.trace-card { background:#112945 !important; border:1px solid #315777 !important; color:#d1e1ef !important; border-radius:12px !important; }
+.trace-title { color:#ffffff !important; }
+.trace-step { background:#1a496b !important; color:#bceee5 !important; }
+
+/* Fix Streamlit uploader rendering */
+[data-testid="stFileUploader"] { background:#0f2239 !important; border:1px dashed #4b7698 !important; border-radius:12px !important; padding:.45rem !important; }
+[data-testid="stFileUploader"] section { background:#0f2239 !important; border:0 !important; }
+[data-testid="stFileUploader"] section > div { color:#d9e6f4 !important; }
+[data-testid="stFileUploader"] small { color:#9db4ca !important; }
+[data-testid="stFileUploader"] button { background:#1b527c !important; color:#ffffff !important; border:1px solid #4d83a8 !important; }
+
+.stButton button { background:#167f9a !important; color:#ffffff !important; border:1px solid #2ea9ad !important; border-radius:10px !important; font-weight:750 !important; }
+.stButton button:hover { background:#1c9a9c !important; }
+[data-testid="stTextArea"] textarea { background:#10243b !important; color:#e7eef7 !important; border:1px solid #42647f !important; border-radius:11px !important; }
+[data-testid="stTextArea"] textarea::placeholder { color:#8da5ba !important; }
+
+.source-card, .evidence-card { background:#10233a !important; border:1px solid #2e5270 !important; color:#dce8f3 !important; border-radius:11px !important; padding:.8rem !important; margin:.55rem 0 !important; box-shadow:none !important; }
+.source-title, .evidence-source { color:#65d8c7 !important; }
+.source-meta, .evidence-excerpt, .source-text { color:#b6c8da !important; }
+.pill { background:#174f55 !important; color:#a9eee2 !important; }
+[data-testid="stAlert"] { border-radius:10px !important; }
+</style>
+""", unsafe_allow_html=True)
