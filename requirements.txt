@@ -1,5 +1,9 @@
-# TODO: backend python dependencies
-pypdf
+﻿pypdf
+python-docx
+fastapi
+uvicorn
+langgraph
+langchain-core
 langchain-community
 langchain-text-splitters
 langchain-openai
@@ -7,5 +11,6 @@ langchain-huggingface
 langchain-chroma
 chromadb
 pydantic-settings
-sentence-transformersstreamlit
+sentence-transformers
+streamlit
 requests
