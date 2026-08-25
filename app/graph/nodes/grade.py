@@ -107,19 +107,50 @@ def _evidence_metadata(
     status: str,
     confidence: float,
 ) -> dict:
-    """Build frontend-ready evidence records from retrieved documents."""
+    """Return focused evidence from reranked chunks.
+
+    Rerank order is already established before this node. We remove only
+    navigation/table-of-contents/footer chunks and preserve the remaining
+    top chunks so citations from the generator have visible evidence cards.
+    """
+    documents = list(state.get("docs", []) or [])
     evidence = []
 
-    for document in state.get("docs", []) or []:
+    for document in documents:
         metadata = document.metadata or {}
+        text = (document.page_content or "").strip()
+        text_lower = text.lower()
+        # Exclude a true table-of-contents chunk.
+        is_table_of_contents = "table of contents" in text_lower[:400]
+
+        # Exclude a short URL/footer-only chunk, but keep substantive chunks that
+        # happen to contain a SEC URL at their end.
+        is_short_footer = (
+            "https://www.sec.gov/" in text_lower
+             and len(text ) < 300
+        )
+
+        is_navigation_chunk = is_table_of_contents or is_short_footer
+
+        
+
+        if is_navigation_chunk:
+            continue
+
         evidence.append(
             {
                 "source": metadata.get("source", "unknown"),
-                "page": metadata.get("page_label", metadata.get("page")),
-                "excerpt": document.page_content[:600],
-                "support": "retrieved",
+                "page": metadata.get(
+                    "page_label",
+                    metadata.get("page"),
+                ),
+                "excerpt": text[:600],
+                "support": "direct",
             }
         )
+
+        if len(evidence) >= 3:
+            break
 
     return {
         "evidence_status": status,
