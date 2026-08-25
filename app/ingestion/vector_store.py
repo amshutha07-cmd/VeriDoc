@@ -1,5 +1,5 @@
-# """
-# Module 1d — Store
+﻿# """
+# Module 1d â€” Store
 # Persists embedded chunks in Chroma so ingestion runs once, not on every
 # app start. Also exposes a reopen() to load an already-built index.
 # """
@@ -42,7 +42,7 @@
 #     store = build_store(chunks)
 #     print(f"Indexed {len(chunks)} chunks into '{settings.chroma_collection_name}'")
 """
-Module 1d — Store
+Module 1d â€” Store
 Persists embedded chunks in Chroma so ingestion runs once, not on every
 app start. Also exposes a reopen() to load an already-built index.
 
@@ -57,7 +57,7 @@ from app.core.config import settings
 from app.ingestion.embedder import get_embeddings
 
 BATCH_SIZE = 20          # chunks per request batch
-DELAY_SECONDS = 15       # pause between batches, stays safely under 100/min
+DELAY_SECONDS = 0       # pause between batches, stays safely under 100/min
 
 
 def build_store(chunks: List[Document]) -> Chroma:

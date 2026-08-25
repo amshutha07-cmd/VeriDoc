@@ -6,3 +6,17 @@ __pycache__/
 chroma_db/
 *.pdf
 evaluation_*.txt
+# Local evaluation outputs
+evaluation_*.txt
+*_eval.txt
+*_results.txt
+*_retry.txt
+ask_payload.json
+
+# Local data and generated vector storage
+data/
+chroma_db/
+*.pdf
+
+# Backup files created during experiments
+*.bak_*
