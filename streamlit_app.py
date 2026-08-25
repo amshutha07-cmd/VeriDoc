@@ -152,10 +152,11 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown(
-    '<div class="topbar"><div class="brand"><span class="brand-mark">◉</span> ProofLoop</div><div class="top-status">Evidence-first document intelligence</div></div>',
-    unsafe_allow_html=True,
-)
+header_left, header_right = st.columns([1, 1])
+with header_left:
+    st.markdown("## ◉ ProofLoop")
+with header_right:
+    st.markdown("<div style='text-align:right; color:#9db4ca; padding-top:.55rem;'>Evidence-first document intelligence</div>", unsafe_allow_html=True)
 
 left, center, right = st.columns([1.08, 2.55, 1.42], gap="large")
 
@@ -445,6 +446,22 @@ st.markdown("""
     .main .block-container { width:calc(100% - 1.5rem) !important; padding-top:1rem !important; }
     .topbar { align-items:flex-start !important; flex-direction:column !important; }
     .top-status { white-space:normal !important; }
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<style>
+/* Native header sizing: no clipped raw HTML wrapper */
+.main h2 {
+    color:#ffffff !important;
+    font-size:1.55rem !important;
+    line-height:1.35 !important;
+    margin:.15rem 0 1rem !important;
+    padding:0 !important;
+}
+[data-testid="column"]:has(h2) {
+    min-height:48px !important;
 }
 </style>
 """, unsafe_allow_html=True)
