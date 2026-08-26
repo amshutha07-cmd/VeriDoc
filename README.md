@@ -107,9 +107,9 @@ flowchart LR
 ## Repository structure
 
 ```
-streamlit_app.py                 # Public UI, upload flow, trace, evidence cards
-render_fetch.py                  # Curated corpus bootstrap
-app/
+backend/streamlit_app.py        # Public UI, upload flow, trace, evidence cards
+backend/render_fetch.py           # Curated corpus bootstrap
+backend/app/
   api/                            # FastAPI route layer retained for local use
   core/                           # Settings and shared state
   graph/
@@ -126,7 +126,7 @@ app/
     chunker.py                    # Retrieval chunking
     embedder.py                   # Embedding factory
     vector_store.py               # Chroma build/reopen
-requirements.txt                  # Python dependencies
+backend/requirements.txt           # Python dependencies
 ```
 
 ## Running locally
@@ -134,12 +134,13 @@ requirements.txt                  # Python dependencies
 ```
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+python -m pip install -r backend/requirements.txt
 
 $env:EMBEDDING_PROVIDER = "huggingface"
 $env:CHROMA_PERSIST_DIR = ".\chroma_db_hf"
 $env:PYTHONIOENCODING = "utf-8"
 
+cd backend
 streamlit run streamlit_app.py
 ```
 
@@ -169,7 +170,7 @@ Upload a public, non-sensitive PDF or DOCX, select **Add document**, and ask a q
 
 ## Deployment
 
-The application is deployed on Streamlit Community Cloud. The public app reads `OPENROUTER_API_KEY` from Streamlit Secrets and runs the graph directly inside the Streamlit process. This avoids the common mistake of making a public UI call a developer-only address such as `127.0.0.1:8000`.
+The application is deployed on Streamlit Community Cloud from `backend/streamlit_app.py`. The public app reads `OPENROUTER_API_KEY` from Streamlit Secrets and runs the graph directly inside the Streamlit process. This avoids the common mistake of making a public UI call a developer-only address such as `127.0.0.1:8000`.
 
 Recommended Streamlit Secrets:
 
