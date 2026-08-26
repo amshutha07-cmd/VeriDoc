@@ -1,36 +1,43 @@
-venv/
-__pycache__/
-*.pyc
-.env
-.env.*
-chroma_db/
-*.pdf
-evaluation_*.txt
+﻿
+!.env.example
+# Backup files created during experiments
+# Local data and generated vector storage
+# Local diagnostic scripts and outputs
 # Local evaluation outputs
-evaluation_*.txt
+# Local indexes, downloaded corpus, diagnostics, and secrets
+# Local vector indexes and backups
+*.bak_*
+*.docx
+*.log
+*.pdf
+*.pyc
+*_check*.txt
 *_eval.txt
 *_results.txt
 *_retry.txt
+.env
+.env.*
+.pytest_cache/
+.streamlit/secrets.toml
+__pycache__/
 ask_payload.json
-
-# Local data and generated vector storage
-data/
 chroma_db/
-*.pdf
-
-# Backup files created during experiments
-*.bak_*
-
-# Local vector indexes and backups
-chroma_db/
-chroma_db_hf/
+chroma_db_*/
 chroma_db_gemini_backup_*/
-
-# Local diagnostic scripts and outputs
+chroma_db_hf/
+data/
 debug_*.py
 debug_*.txt
-direct_*.txt
-generation_context.txt
+debug_deterministic_*.txt`r`nretry_*.txt`r`n*_check*.txt
+deterministic_*.txt`r`nretry_*.txt`r`n*_check*.txt
+direct_deterministic_*.txt`r`nretry_*.txt`r`n*_check*.txt
+direct_llm_*.txt
+evaluation_*.txt
+evaluation_deterministic_*.txt`r`nretry_*.txt`r`n*_check*.txt
 expanded_*.txt
-validate_expanded_retrieval.py
+expanded_deterministic_*.txt`r`nretry_*.txt`r`n*_check*.txt
+generation_context.txt
+retry_*.txt
 retry_smoke.txt
+validate_expanded_retrieval.py
+venv/

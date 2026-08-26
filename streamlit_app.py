@@ -1,4 +1,5 @@
-﻿import hashlib
+import html
+import hashlib
 import os
 import subprocess
 import sys
@@ -59,6 +60,8 @@ def ingest_uploaded_document(uploaded_file):
     from app.ingestion.vector_store import build_store
 
     file_bytes = uploaded_file.getvalue()
+    if len(file_bytes) > 15 * 1024 * 1024:
+        raise ValueError("File is too large. Maximum upload size is 15 MB.")
     file_hash = hashlib.sha256(file_bytes).hexdigest()
     suffix = Path(uploaded_file.name).suffix.lower()
     if suffix not in (".pdf", ".docx"):
@@ -67,6 +70,9 @@ def ingest_uploaded_document(uploaded_file):
     temp_path = Path(tempfile.gettempdir()) / f"proofloop_{file_hash[:12]}{suffix}"
     temp_path.write_bytes(file_bytes)
     docs = load_single_pdf(str(temp_path)) if suffix == ".pdf" else load_single_docx(str(temp_path))
+
+    if len(docs) > 150:
+        raise ValueError("Document is too large. Maximum supported length is 150 pages.")
 
     for doc in docs:
         doc.metadata["source"] = uploaded_file.name
@@ -77,12 +83,15 @@ def ingest_uploaded_document(uploaded_file):
     chunks = chunk_documents(docs)
     if not chunks:
         raise ValueError("No readable text was found in the uploaded document.")
+    if len(chunks) > 5000:
+        raise ValueError("Document produces too many chunks for this public demo.")
     build_store(chunks)
     return len(docs), len(chunks), file_hash
 
 
 def clean_text(value) -> str:
-    return " ".join(str(value or "").split())
+    """Normalize and escape untrusted text before placing it in HTML."""
+    return html.escape(" ".join(str(value or "").split()))
 
 
 def display_metadata(item: dict) -> tuple[str, str]:
@@ -164,6 +173,7 @@ with left.container(border=True):
     st.markdown('<div class="panel-title">Knowledge base</div>', unsafe_allow_html=True)
     st.markdown('<div class="panel-subtitle">Your indexed documents</div>', unsafe_allow_html=True)
 
+    st.warning("Demo safety notice: do not upload confidential, personal, regulated, or proprietary documents. Uploaded files are processed in this shared demo workspace.")
     uploaded_file = st.file_uploader("Add a PDF or DOCX", type=["pdf", "docx"], label_visibility="collapsed")
     if st.button("＋ Add document", use_container_width=True):
         if uploaded_file is None:
@@ -188,7 +198,7 @@ with left.container(border=True):
     st.markdown('<div class="source-card"><div class="source-title">Research references</div><div class="source-meta">Macroeconomics · Education</div><span class="pill">Indexed</span></div>', unsafe_allow_html=True)
 
     for name in st.session_state.get("uploaded_names", []):
-        st.markdown(f'<div class="source-card"><div class="source-title">{name}</div><div class="source-meta">Custom document</div><span class="pill">Added</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="source-card"><div class="source-title">{clean_text(name)}</div><div class="source-meta">Custom document</div><span class="pill">Added</span></div>', unsafe_allow_html=True)
 
     st.markdown('<div class="panel-subtitle">Upload a document to ask questions about its contents. Unsupported questions are refused instead of invented.</div>', unsafe_allow_html=True)
 
@@ -219,7 +229,7 @@ with center.container(border=True):
                         evidence = output.get("evidence", evidence)
 
                 st.markdown(f'<div class="user-bubble">{clean_text(question)}</div>', unsafe_allow_html=True)
-                st.markdown("<div class='answer-card'>" + (answer or "No answer returned.") + "</div>", unsafe_allow_html=True)
+                st.markdown("<div class='answer-card'>" + clean_text(answer or "No answer returned.") + "</div>", unsafe_allow_html=True)
                 st.markdown('<div class="trace-card"><div class="trace-title">✦ How this answer was built</div>' + "".join(f'<span class="trace-step">{x}</span>' for x in trace) + f'<div style="margin-top:.6rem;color:#a9c1da;font-size:.78rem">Support: {evidence_status or "unknown"} · Grade: {grade or "unknown"} · Retries: {retries} · Confidence: {confidence if confidence is not None else "n/a"}</div></div>', unsafe_allow_html=True)
                 st.caption(f"{vector_count:,} indexed passages")
                 if "could not find" in (answer or "").lower() or evidence_status == "uncertain":
@@ -241,7 +251,7 @@ with right.container(border=True):
             source = item.get("source", "unknown")
             page = item.get("page", "?")
             excerpt = clean_text(item.get("excerpt", ""))
-            st.markdown(f'<div class="source-card"><div class="source-title">{index}. {organization} · Page {page}</div><div class="source-meta">{category} · {source}</div><div class="source-text">{excerpt}</div><span class="pill">Evidence</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="source-card"><div class="source-title">{index}. {clean_text(organization)} · Page {clean_text(page)}</div><div class="source-meta">{clean_text(category)} · {clean_text(source)}</div><div class="source-text">{excerpt}</div><span class="pill">Evidence</span></div>', unsafe_allow_html=True)
     else:
         st.info("Run a question to see the cited source cards here.")
 
