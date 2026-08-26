@@ -1,3 +1,12 @@
+﻿from pathlib import Path
+import os
+import sys
+
+_BACKEND_DIR = Path(__file__).resolve().parent
+os.chdir(_BACKEND_DIR)
+if str(_BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(_BACKEND_DIR))
+
 import html
 import hashlib
 import os
@@ -464,5 +473,6 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 
