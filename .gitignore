@@ -18,3 +18,5 @@ evaluation_*.txt
 expanded_*.txt
 retry_*.txt
 *_check*.txt
+__pycache__/
+**/__pycache__/
