@@ -161,11 +161,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-header_left, header_right = st.columns([1, 1])
-with header_left:
-    st.markdown("## ◉ ProofLoop")
-with header_right:
-    st.markdown("<div style='text-align:right; color:#9db4ca; padding-top:.55rem;'>Evidence-first document intelligence</div>", unsafe_allow_html=True)
+st.markdown("## ◉ ProofLoop")
 
 left, center, right = st.columns([1.08, 2.55, 1.42], gap="large")
 
