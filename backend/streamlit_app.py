@@ -19,7 +19,7 @@ from pathlib import Path
 import streamlit as st
 
 st.set_page_config(
-    page_title="ProofLoop | Evidence-First Document QA",
+    page_title="VeriDoc | Evidence-First Document QA",
     page_icon="P",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -164,7 +164,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("## ProofLoop")
+st.markdown("## VeriDoc")
 
 left, center, right = st.columns([1.08, 2.55, 1.42], gap="large")
 
@@ -204,7 +204,7 @@ with left.container(border=True):
 with center.container(border=True):
     st.markdown('<div class="question-label">Ask your documents</div>', unsafe_allow_html=True)
     question = st.text_area("Question", value="What are Apple's main risk factors - ", height=90, label_visibility="collapsed", placeholder="Ask a question about your documents")
-    run = st.button("Run ProofLoop->", type="primary", use_container_width=True)
+    run = st.button("Run VeriDoc->", type="primary", use_container_width=True)
 
     if run:
         if not question.strip():
@@ -232,11 +232,11 @@ with center.container(border=True):
                 st.markdown('<div class="trace-card"><div class="trace-title">* How this answer was built</div>' + "".join(f'<span class="trace-step">{x}</span>' for x in trace) + f'<div style="margin-top:.6rem;color:#a9c1da;font-size:.78rem">Support: {evidence_status or "unknown"} - Grade: {grade or "unknown"} - Retries: {retries} - Confidence: {confidence if confidence is not None else "n/a"}</div></div>', unsafe_allow_html=True)
                 st.caption(f"{vector_count:,} indexed passages")
                 if "could not find" in (answer or "").lower() or evidence_status == "uncertain":
-                    st.warning("ProofLoop refused or qualified this answer because the evidence was insufficient.")
+                    st.warning("VeriDoc refused or qualified this answer because the evidence was insufficient.")
                 else:
                     st.success("Answer grounded in retrieved evidence.")
             except Exception as exc:
-                st.error(f"ProofLoop failed: {exc}")
+                st.error(f"VeriDoc failed: {exc}")
     else:
         st.markdown('<div class="answer-card" style="margin-top:1rem;color:#66788c">Your grounded answer will appear here, together with the retrieval path used to produce it.</div>', unsafe_allow_html=True)
 
@@ -256,7 +256,7 @@ with right.container(border=True):
 
 st.markdown("""
 <style>
-/* Final ProofLoop dark theme override */
+/* Final VeriDoc dark theme override */
 .stApp, [data-testid="stAppViewContainer"] { background:#07111f !important; color:#e7eef7 !important; }
 [data-testid="stHeader"] { background:#07111f !important; }
 .block-container { max-width:1500px !important; padding:1.25rem 2rem 3rem !important; }
@@ -473,6 +473,8 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
+
 
 
 

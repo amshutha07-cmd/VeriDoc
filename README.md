@@ -1,14 +1,14 @@
-﻿# ProofLoop
+﻿# VeriDoc
 
 ## Evidence-First Corrective RAG for Financial and Business Document QA
 
-ProofLoop is an evidence-first Corrective Retrieval-Augmented Generation system for answering questions over financial, business, macroeconomic, and educational documents. Instead of retrieving once and generating immediately, ProofLoop evaluates the quality of its retrieved evidence, corrects weak searches through a bounded rewrite loop, and refuses unsupported questions rather than inventing facts.
+VeriDoc is an evidence-first Corrective Retrieval-Augmented Generation system for answering questions over financial, business, macroeconomic, and educational documents. Instead of retrieving once and generating immediately, VeriDoc evaluates the quality of its retrieved evidence, corrects weak searches through a bounded rewrite loop, and refuses unsupported questions rather than inventing facts.
 
 **Live demo:** [proofloop.streamlit.app](https://proofloop.streamlit.app)**Repository:** [github.com/amshutha07-cmd/self](https://github.com/amshutha07-cmd/self)
 
-## Why ProofLoop?
+## Why VeriDoc?
 
-A fluent answer is not necessarily a supported answer. Similarity search can return navigation fragments, repeated boilerplate, or passages that are related but insufficient for the requested fact. ProofLoop makes the evidence boundary visible and treats refusal as a deliberate product behavior.
+A fluent answer is not necessarily a supported answer. Similarity search can return navigation fragments, repeated boilerplate, or passages that are related but insufficient for the requested fact. VeriDoc makes the evidence boundary visible and treats refusal as a deliberate product behavior.
 
 The system is designed around five goals:
 
@@ -62,7 +62,7 @@ flowchart LR
 
 1. The generator answers only from supplied evidence and cites source/page metadata.
 
-1. If support is insufficient, ProofLoop returns a safe refusal.
+1. If support is insufficient, VeriDoc returns a safe refusal.
 
 1. The Streamlit UI displays the answer, trace, support state, retries, confidence, and evidence cards.
 
@@ -154,7 +154,7 @@ For local execution, keep the OpenRouter key in a local environment or secrets f
 What are Apple's main risk factors?
 ```
 
-Expected behavior: ProofLoop retrieves and reranks evidence, grades it as useful, generates a cited answer, and displays the retrieval trace and evidence cards.
+Expected behavior: VeriDoc retrieves and reranks evidence, grades it as useful, generates a cited answer, and displays the retrieval trace and evidence cards.
 
 ### Unsupported question
 
@@ -162,7 +162,7 @@ Expected behavior: ProofLoop retrieves and reranks evidence, grades it as useful
 What was Apple's exact stock buyback amount in Q3 2019?
 ```
 
-Expected behavior: ProofLoop performs bounded corrective retrieval and refuses or qualifies the answer because the indexed evidence does not support that period.
+Expected behavior: VeriDoc performs bounded corrective retrieval and refuses or qualifies the answer because the indexed evidence does not support that period.
 
 ### Custom document question
 
@@ -183,7 +183,7 @@ PYTHONIOENCODING = "utf-8"
 
 ## Safety and limitations
 
-ProofLoop is a public portfolio prototype, not a private multi-user document vault. Do not upload confidential, personal, regulated, or proprietary documents. A production version would require authentication, per-user document isolation, private object storage, persistent hosted vector storage, deletion controls, rate limiting, and stronger monitoring.
+VeriDoc is a public portfolio prototype, not a private multi-user document vault. Do not upload confidential, personal, regulated, or proprietary documents. A production version would require authentication, per-user document isolation, private object storage, persistent hosted vector storage, deletion controls, rate limiting, and stronger monitoring.
 
 The generator treats document text as untrusted data rather than instructions. It is instructed to ignore document content that asks it to reveal secrets, change system rules, call tools, or answer beyond the evidence. Upload processing is bounded by file, page, and chunk limits.
 
@@ -208,3 +208,4 @@ The system does not claim universal accuracy or universal improvement over basel
 - Add automated prompt-injection, malformed-file, and resource-exhaustion tests.
 
 - Add aggregate observability for latency, retries, refusal calibration, and cost.
+
