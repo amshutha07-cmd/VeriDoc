@@ -24,7 +24,6 @@ os.environ.setdefault("EMBEDDING_PROVIDER", "huggingface")
 os.environ.setdefault("CHROMA_PERSIST_DIR", "./chroma_db_hf")
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")
 
-
 def blank_state(question: str) -> dict:
     return {
         "question": question,
@@ -35,7 +34,6 @@ def blank_state(question: str) -> dict:
         "grade": "",
         "retries": 0,
     }
-
 
 @st.cache_resource(show_spinner="Preparing your document workspaceâ€¦")
 def prepare_proofloop():
@@ -52,7 +50,6 @@ def prepare_proofloop():
 
     from app.graph.build_graph import graph
     return graph, count
-
 
 def ingest_uploaded_document(uploaded_file):
     from app.ingestion.chunker import chunk_documents
@@ -88,11 +85,9 @@ def ingest_uploaded_document(uploaded_file):
     build_store(chunks)
     return len(docs), len(chunks), file_hash
 
-
 def clean_text(value) -> str:
     """Normalize and escape untrusted text before placing it in HTML."""
     return html.escape(" ".join(str(value or "").split()))
-
 
 def display_metadata(item: dict) -> tuple[str, str]:
     source = str(item.get("source", "")).lower()
@@ -124,7 +119,6 @@ def display_metadata(item: dict) -> tuple[str, str]:
             category = "Uploaded Document"
 
     return str(organization), str(category)
-
 
 st.markdown(
     """
@@ -250,7 +244,6 @@ with right.container(border=True):
             st.markdown(f'<div class="source-card"><div class="source-title">{index}. {clean_text(organization)} Â· Page {clean_text(page)}</div><div class="source-meta">{clean_text(category)} Â· {clean_text(source)}</div><div class="source-text">{excerpt}</div><span class="pill">Evidence</span></div>', unsafe_allow_html=True)
     else:
         st.info("Run a question to see the cited source cards here.")
-
 
 st.markdown("""
 <style>
@@ -471,4 +464,5 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
 
