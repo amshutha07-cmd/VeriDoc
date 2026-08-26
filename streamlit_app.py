@@ -155,7 +155,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("## â-‰ ProofLoop")
+st.markdown("## ProofLoop")
 
 left, center, right = st.columns([1.08, 2.55, 1.42], gap="large")
 
