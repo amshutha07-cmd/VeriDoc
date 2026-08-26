@@ -1,4 +1,4 @@
-# ProofLoop
+﻿# ProofLoop
 
 ## Evidence-First Corrective RAG for Financial and Business Document QA
 
@@ -170,7 +170,7 @@ Upload a public, non-sensitive PDF or DOCX, select **Add document**, and ask a q
 
 ## Deployment
 
-The application is deployed on Streamlit Community Cloud from `backend/streamlit_app.py`. The public app reads `OPENROUTER_API_KEY` from Streamlit Secrets and runs the graph directly inside the Streamlit process. This avoids the common mistake of making a public UI call a developer-only address such as `127.0.0.1:8000`.
+The application is deployed on Streamlit Community Cloud using the root `streamlit_app.py` launcher, which runs the real application from `backend/streamlit_app.py`. The public app reads `OPENROUTER_API_KEY` from Streamlit Secrets and runs the graph directly inside the Streamlit process. A small root launcher delegates to `backend/streamlit_app.py` so the existing Cloud deployment path remains compatible. This avoids the common mistake of making a public UI call a developer-only address such as `127.0.0.1:8000`.
 
 Recommended Streamlit Secrets:
 
