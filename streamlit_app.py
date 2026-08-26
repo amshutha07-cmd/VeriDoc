@@ -163,7 +163,7 @@ with left.container(border=True):
     st.markdown('<div class="panel-title">Knowledge base</div>', unsafe_allow_html=True)
     st.markdown('<div class="panel-subtitle">Your indexed documents</div>', unsafe_allow_html=True)
 
-    st.warning("Demo safety notice: do not upload confidential, personal, regulated, or proprietary documents. Uploaded files are processed in this shared demo workspace.")
+    st.caption("Demo workspace: please use public or non-sensitive documents.")
     uploaded_file = st.file_uploader("Add a PDF or DOCX", type=["pdf", "docx"], label_visibility="collapsed")
     if st.button(" + Add document", use_container_width=True):
         if uploaded_file is None:
