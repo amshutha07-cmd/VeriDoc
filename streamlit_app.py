@@ -1,4 +1,4 @@
-﻿import html
+import html
 import hashlib
 import os
 import subprocess
@@ -155,7 +155,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("## â—‰ ProofLoop")
+st.markdown("## â-‰ ProofLoop")
 
 left, center, right = st.columns([1.08, 2.55, 1.42], gap="large")
 
@@ -184,8 +184,8 @@ with left.container(border=True):
                     st.error(f"Upload failed: {exc}")
 
     st.markdown("#### Core collection")
-    st.markdown('<div class="source-card"><div class="source-title">Corporate filings</div><div class="source-meta">Apple Â· Microsoft Â· NVIDIA Â· Amazon</div><span class="pill">Indexed</span></div>', unsafe_allow_html=True)
-    st.markdown('<div class="source-card"><div class="source-title">Research references</div><div class="source-meta">Macroeconomics Â· Education</div><span class="pill">Indexed</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="source-card"><div class="source-title">Corporate filings</div><div class="source-meta">Apple Â- Microsoft Â- NVIDIA Â- Amazon</div><span class="pill">Indexed</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="source-card"><div class="source-title">Research references</div><div class="source-meta">Macroeconomics Â- Education</div><span class="pill">Indexed</span></div>', unsafe_allow_html=True)
 
     for name in st.session_state.get("uploaded_names", []):
         st.markdown(f'<div class="source-card"><div class="source-title">{clean_text(name)}</div><div class="source-meta">Custom document</div><span class="pill">Added</span></div>', unsafe_allow_html=True)
@@ -195,7 +195,7 @@ with left.container(border=True):
 with center.container(border=True):
     st.markdown('<div class="question-label">Ask your documents</div>', unsafe_allow_html=True)
     question = st.text_area("Question", value="What are Apple's main risk factors?", height=90, label_visibility="collapsed", placeholder="Ask a question about your documentsâ€¦")
-    run = st.button("Run ProofLoop  â†’", type="primary", use_container_width=True)
+    run = st.button("Run ProofLoop->", type="primary", use_container_width=True)
 
     if run:
         if not question.strip():
@@ -220,7 +220,7 @@ with center.container(border=True):
 
                 st.markdown(f'<div class="user-bubble">{clean_text(question)}</div>', unsafe_allow_html=True)
                 st.markdown("<div class='answer-card'>" + clean_text(answer or "No answer returned.") + "</div>", unsafe_allow_html=True)
-                st.markdown('<div class="trace-card"><div class="trace-title">âœ¦ How this answer was built</div>' + "".join(f'<span class="trace-step">{x}</span>' for x in trace) + f'<div style="margin-top:.6rem;color:#a9c1da;font-size:.78rem">Support: {evidence_status or "unknown"} Â· Grade: {grade or "unknown"} Â· Retries: {retries} Â· Confidence: {confidence if confidence is not None else "n/a"}</div></div>', unsafe_allow_html=True)
+                st.markdown('<div class="trace-card"><div class="trace-title">* How this answer was built</div>' + "".join(f'<span class="trace-step">{x}</span>' for x in trace) + f'<div style="margin-top:.6rem;color:#a9c1da;font-size:.78rem">Support: {evidence_status or "unknown"} Â- Grade: {grade or "unknown"} Â- Retries: {retries} Â- Confidence: {confidence if confidence is not None else "n/a"}</div></div>', unsafe_allow_html=True)
                 st.caption(f"{vector_count:,} indexed passages")
                 if "could not find" in (answer or "").lower() or evidence_status == "uncertain":
                     st.warning("ProofLoop refused or qualified this answer because the evidence was insufficient.")
@@ -241,7 +241,7 @@ with right.container(border=True):
             source = item.get("source", "unknown")
             page = item.get("page", "?")
             excerpt = clean_text(item.get("excerpt", ""))
-            st.markdown(f'<div class="source-card"><div class="source-title">{index}. {clean_text(organization)} Â· Page {clean_text(page)}</div><div class="source-meta">{clean_text(category)} Â· {clean_text(source)}</div><div class="source-text">{excerpt}</div><span class="pill">Evidence</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="source-card"><div class="source-title">{index}. {clean_text(organization)} Â- Page {clean_text(page)}</div><div class="source-meta">{clean_text(category)} Â- {clean_text(source)}</div><div class="source-text">{excerpt}</div><span class="pill">Evidence</span></div>', unsafe_allow_html=True)
     else:
         st.info("Run a question to see the cited source cards here.")
 
