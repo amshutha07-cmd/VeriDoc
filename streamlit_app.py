@@ -35,7 +35,7 @@ def blank_state(question: str) -> dict:
         "retries": 0,
     }
 
-@st.cache_resource(show_spinner="Preparing your document workspaceâ€¦")
+@st.cache_resource(show_spinner="Preparing your document workspace")
 def prepare_proofloop():
     from app.ingestion.vector_store import reopen_store
 
@@ -165,7 +165,7 @@ with left.container(border=True):
 
     st.warning("Demo safety notice: do not upload confidential, personal, regulated, or proprietary documents. Uploaded files are processed in this shared demo workspace.")
     uploaded_file = st.file_uploader("Add a PDF or DOCX", type=["pdf", "docx"], label_visibility="collapsed")
-    if st.button("ï¼‹ Add document", use_container_width=True):
+    if st.button(" + Add document", use_container_width=True):
         if uploaded_file is None:
             st.warning("Choose a PDF or DOCX first.")
         else:
@@ -175,7 +175,7 @@ with left.container(border=True):
                 st.info("Already added in this session.")
             else:
                 try:
-                    with st.spinner("Indexing documentâ€¦"):
+                    with st.spinner("Indexing document"):
                         prepare_proofloop()
                         pages, chunks, _ = ingest_uploaded_document(uploaded_file)
                     known.add(file_hash)
@@ -184,8 +184,8 @@ with left.container(border=True):
                     st.error(f"Upload failed: {exc}")
 
     st.markdown("#### Core collection")
-    st.markdown('<div class="source-card"><div class="source-title">Corporate filings</div><div class="source-meta">Apple Â- Microsoft Â- NVIDIA Â- Amazon</div><span class="pill">Indexed</span></div>', unsafe_allow_html=True)
-    st.markdown('<div class="source-card"><div class="source-title">Research references</div><div class="source-meta">Macroeconomics Â- Education</div><span class="pill">Indexed</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="source-card"><div class="source-title">Corporate filings</div><div class="source-meta">Apple - Microsoft - NVIDIA - Amazon</div><span class="pill">Indexed</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="source-card"><div class="source-title">Research references</div><div class="source-meta">Macroeconomics - Education</div><span class="pill">Indexed</span></div>', unsafe_allow_html=True)
 
     for name in st.session_state.get("uploaded_names", []):
         st.markdown(f'<div class="source-card"><div class="source-title">{clean_text(name)}</div><div class="source-meta">Custom document</div><span class="pill">Added</span></div>', unsafe_allow_html=True)
@@ -194,7 +194,7 @@ with left.container(border=True):
 
 with center.container(border=True):
     st.markdown('<div class="question-label">Ask your documents</div>', unsafe_allow_html=True)
-    question = st.text_area("Question", value="What are Apple's main risk factors?", height=90, label_visibility="collapsed", placeholder="Ask a question about your documentsâ€¦")
+    question = st.text_area("Question", value="What are Apple's main risk factors - ", height=90, label_visibility="collapsed", placeholder="Ask a question about your documents")
     run = st.button("Run ProofLoop->", type="primary", use_container_width=True)
 
     if run:
@@ -205,7 +205,7 @@ with center.container(border=True):
                 graph, vector_count = prepare_proofloop()
                 trace, answer, grade, retries = [], "", "", 0
                 evidence_status, confidence, evidence = "", None, []
-                with st.spinner("Following the evidence trailâ€¦"):
+                with st.spinner("Following the evidence trail"):
                     config = {"configurable": {"thread_id": f"streamlit-{uuid.uuid4().hex}"}}
                     for step in graph.stream(blank_state(question), config):
                         node = next(iter(step))
@@ -220,7 +220,7 @@ with center.container(border=True):
 
                 st.markdown(f'<div class="user-bubble">{clean_text(question)}</div>', unsafe_allow_html=True)
                 st.markdown("<div class='answer-card'>" + clean_text(answer or "No answer returned.") + "</div>", unsafe_allow_html=True)
-                st.markdown('<div class="trace-card"><div class="trace-title">* How this answer was built</div>' + "".join(f'<span class="trace-step">{x}</span>' for x in trace) + f'<div style="margin-top:.6rem;color:#a9c1da;font-size:.78rem">Support: {evidence_status or "unknown"} Â- Grade: {grade or "unknown"} Â- Retries: {retries} Â- Confidence: {confidence if confidence is not None else "n/a"}</div></div>', unsafe_allow_html=True)
+                st.markdown('<div class="trace-card"><div class="trace-title">* How this answer was built</div>' + "".join(f'<span class="trace-step">{x}</span>' for x in trace) + f'<div style="margin-top:.6rem;color:#a9c1da;font-size:.78rem">Support: {evidence_status or "unknown"} - Grade: {grade or "unknown"} - Retries: {retries} - Confidence: {confidence if confidence is not None else "n/a"}</div></div>', unsafe_allow_html=True)
                 st.caption(f"{vector_count:,} indexed passages")
                 if "could not find" in (answer or "").lower() or evidence_status == "uncertain":
                     st.warning("ProofLoop refused or qualified this answer because the evidence was insufficient.")
@@ -239,9 +239,9 @@ with right.container(border=True):
         for index, item in enumerate(evidence, 1):
             organization, category = display_metadata(item)
             source = item.get("source", "unknown")
-            page = item.get("page", "?")
+            page = item.get("page", " - ")
             excerpt = clean_text(item.get("excerpt", ""))
-            st.markdown(f'<div class="source-card"><div class="source-title">{index}. {clean_text(organization)} Â- Page {clean_text(page)}</div><div class="source-meta">{clean_text(category)} Â- {clean_text(source)}</div><div class="source-text">{excerpt}</div><span class="pill">Evidence</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="source-card"><div class="source-title">{index}. {clean_text(organization)} - Page {clean_text(page)}</div><div class="source-meta">{clean_text(category)} - {clean_text(source)}</div><div class="source-text">{excerpt}</div><span class="pill">Evidence</span></div>', unsafe_allow_html=True)
     else:
         st.info("Run a question to see the cited source cards here.")
 
