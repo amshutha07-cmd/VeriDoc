@@ -28,3 +28,11 @@ __pycache__/
 chroma_db/
 backend/data/*.pkl
 project_audit/
+backend/data/legal_corpus/acts/incoming/
+backend/data/legal_corpus/acts/raw/
+backend/data/legal_corpus/acts/text/
+backend/data/legal_corpus/rules/
+backend/data/legal_corpus/judgments/
+backend/data/legal_corpus/manifests/*.jsonl
+backend/data/legal_corpus/manifests/*.legacy-404.jsonl
+backend/data/legal_corpus/manifests/*.all-failed.jsonl
