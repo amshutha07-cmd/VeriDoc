@@ -63,6 +63,7 @@ from app.graph.nodes.generate import generate
 from app.graph.router import route
 from app.graph.nodes.extract_entities import extract_entities
 from app.graph.nodes.graph_search import graph_search
+from app.graph.nodes.classify_domain import classify_domain
 def build_graph():
     builder = StateGraph(RAGState)
 
@@ -76,9 +77,11 @@ def build_graph():
     # NEW: Add GraphRAG nodes
     builder.add_node("extract_entities", extract_entities)
     builder.add_node("graph_search", graph_search)
+    builder.add_node("classify_domain", classify_domain)
 
     # UPDATED EDGES: Start with GraphRAG, then proceed to retrieval
-    builder.add_edge(START, "extract_entities")
+    builder.add_edge(START, "classify_domain")
+    builder.add_edge("classify_domain", "extract_entities")
     builder.add_edge("extract_entities", "graph_search")
     builder.add_edge("graph_search", "retrieve")
 
@@ -105,7 +108,13 @@ def _blank_state(question: str) -> dict:
         "grade": "",
         "retries": 0,
         "entities": [],      # Added
-        "graph_results": []  # Added
+        "graph_results": [],   # Added
+        "domain": "corporate",
+        "question_type": "general",
+        "jurisdiction": "",
+        "legal_entities": [],
+        "temporal_scope": [],
+        "source_filters": {},
     }
 
 
@@ -124,3 +133,4 @@ if __name__ == "__main__":
     print("\n=== Replay: fetching checkpoint history for this thread ===")
     history = list(graph.get_state_history(cfg))
     print(f"Found {len(history)} checkpoint(s) for thread_id='test-session-1'")
+

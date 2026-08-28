@@ -19,7 +19,16 @@ class RAGState(TypedDict):
     entities: list        # For extract_entities.py
     graph_results: list   # For graph_search.py
 
+    # Domain-aware routing and legal-research metadata.
+    domain: NotRequired[str]
+    question_type: NotRequired[str]
+    jurisdiction: NotRequired[str]
+    legal_entities: NotRequired[List[Dict[str, Any]]]
+    temporal_scope: NotRequired[List[str]]
+    source_filters: NotRequired[Dict[str, Any]]
+
     # Structured ProofLoop response metadata.
     evidence_status: NotRequired[str]
     evidence_confidence: NotRequired[float]
     evidence: NotRequired[List[Dict[str, Any]]]
+
