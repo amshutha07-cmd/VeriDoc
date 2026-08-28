@@ -1,0 +1,99 @@
+/* Evidence Atelier direction: aged-paper ivory, ink-black type, oxidized-copper provenance accents, editorial rules, and calm instrument-like motion. */
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "DM Serif Display", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+}
+
+:root {
+  --primary: #b96845;
+  --primary-foreground: #fffaf2;
+  --background: #f4f0e8;
+  --foreground: #1e2625;
+  --card: #fbfaf6;
+  --card-foreground: #1e2625;
+  --popover: #fbfaf6;
+  --popover-foreground: #1e2625;
+  --secondary: #eee9df;
+  --secondary-foreground: #4f5752;
+  --muted: #e8e1d6;
+  --muted-foreground: #80796f;
+  --accent: #e7efe8;
+  --accent-foreground: #547461;
+  --destructive: #a25d41;
+  --destructive-foreground: #fffaf2;
+  --border: #d9d1c4;
+  --input: #cfc6b9;
+  --ring: #b96845;
+  --radius: 0px;
+}
+
+* { box-sizing: border-box; }
+html { background: #f4f0e8; }
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #f4f0e8;
+  color: #1e2625;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button, textarea, input { font: inherit; }
+button { border-radius: 0; }
+::selection { background: #e6ad94; color: #1e2625; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [type="button"]:not(:disabled), [type="submit"]:not(:disabled), a[href] { @apply cursor-pointer; }
+}
+
+/* Legal answer Markdown: readable provision hierarchy, lists, and citation links. */
+.answer-markdown p { margin: 0 0 0.9rem; }
+.answer-markdown p:last-child { margin-bottom: 0; }
+.answer-markdown strong { color: #1e2625; font-weight: 700; }
+.answer-markdown em { color: #8d553f; }
+.answer-markdown ul, .answer-markdown ol { margin: 0.9rem 0 0.25rem 1.35rem; padding: 0; }
+.answer-markdown li { margin: 0.45rem 0; padding-left: 0.25rem; }
+.answer-markdown li::marker { color: #b96845; font-family: "IBM Plex Mono", monospace; font-size: 0.72em; }
+.answer-markdown code { background: #eee9df; padding: 0.12rem 0.3rem; font-family: "IBM Plex Mono", monospace; font-size: 0.72em; }
+.answer-markdown a { color: #a25d41; text-decoration: underline; text-decoration-color: #d99b80; text-underline-offset: 0.15em; }
+
+/* Source cards: readable contrast and clear provenance styling. */
+.source-card { color: #3b4540 !important; background: #f8f5ef !important; }
+.source-card div, .source-card span { color: #3b4540; }
+.source-card .text-\[\#958d83\] { color: #766f66 !important; }
+.source-card .text-\[\#6e8b78\] { color: #547461 !important; }
+.source-card svg { color: #b96845 !important; }
