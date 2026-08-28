@@ -3,13 +3,13 @@
 from app.core.state import RAGState
 from app.core.config import settings
 from app.ingestion.vector_store import reopen_store
-from app.ingestion.embedder import get_embeddings
+from app.ingestion.embedder import get_embeddings, get_corporate_embeddings
 from langchain_chroma import Chroma
 
 LEGAL_COLLECTION = "veridoc_legal"
 
 # Corporate collection: existing behavior is preserved.
-_corporate_store = reopen_store()
+_corporate_store = Chroma(collection_name=settings.chroma_collection_name, embedding_function=get_corporate_embeddings(), persist_directory=settings.chroma_persist_dir)
 _corporate_retriever = _corporate_store.as_retriever(
     search_type="mmr",
     search_kwargs={
@@ -51,3 +51,4 @@ def retrieve(state: RAGState) -> dict:
         f"docs={len(docs)}"
     )
     return {"docs": docs, "query": query}
+

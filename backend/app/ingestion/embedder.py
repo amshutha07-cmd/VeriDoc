@@ -1,32 +1,24 @@
-﻿"""
-Metadata-aware embedding provider for VeriDoc Nexus.
-Configured to use OpenRouter to bypass rate limits and scale ingestion.
-"""
+﻿"""Embedding providers for the separate corporate and Indian-law collections."""
+
 from app.core.config import settings
 from langchain_openai import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
+
 
 def get_embeddings():
-    """
-    Returns an embeddings object.
-    Switched to OpenRouter (OpenAI-compatible) to handle large datasets
-    without the Gemini free-tier rate limits.
-    """
-    # We use the OpenAIEmbeddings class but point it to OpenRouter
+    """Embedding provider for the Indian-law collection: 1536 dimensions."""
     return OpenAIEmbeddings(
         model="text-embedding-3-small",
         openai_api_key=settings.openrouter_api_key,
         openai_api_base="https://openrouter.ai/api/v1",
-        # Disabling context length check as OpenRouter handles various models
-        check_embedding_ctx_length=False
-    )
+        check_embedding_ctx_length=False,
+     )
 
-if __name__ == "__main__":
-    # Test the OpenRouter embedding connection
-    try:
-        embeddings = get_embeddings()
-        test_text = "What is the capital of France?"
-        vec = embeddings.embed_query(test_text)
-        print(f"âœ… OpenRouter Connection Successful")
-        print(f"Embedding dimensions: {len(vec)}")
-    except Exception as e:
-        print(f"âŒ Connection Failed: {e}")
+
+def get_corporate_embeddings():
+    """Embedding provider matching the existing 384-dimensional handbook index."""
+    return HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2",
+        model_kwargs={"device": "cpu"},
+        encode_kwargs={"normalize_embeddings": True},
+    )
