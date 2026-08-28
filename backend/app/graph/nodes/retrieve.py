@@ -1,45 +1,53 @@
-"""
-Module 3 — Retrieve Node
-First real graph node. Pulls candidate chunks from the persisted Chroma
-store for the current query, writes them back into state.
-"""
+﻿"""Domain-aware retrieval for corporate and Indian-law corpora."""
+
 from app.core.state import RAGState
-from app.ingestion.vector_store import reopen_store
 from app.core.config import settings
+from app.ingestion.vector_store import reopen_store
+from app.ingestion.embedder import get_embeddings
+from langchain_chroma import Chroma
 
-# Reopened once at import time — reused across every graph run,
-# not rebuilt per-request (rebuilding would re-load the embedding client each call).
+LEGAL_COLLECTION = "veridoc_legal"
 
-_store = reopen_store()
-
-_collection_count = _store._collection.count()
-if _collection_count == 0:
-    print("⚠️  Warning: vector store is empty. Run `python -m app.ingestion.vector_store` first.")
-
-
-
-retriever = _store.as_retriever(
-    search_type="mmr",   # diversity-aware — avoids 12 near-duplicate chunks
+# Corporate collection: existing behavior is preserved.
+_corporate_store = reopen_store()
+_corporate_retriever = _corporate_store.as_retriever(
+    search_type="mmr",
     search_kwargs={
         "k": settings.retrieve_k,
         "fetch_k": settings.retrieve_fetch_k,
     },
 )
 
+# Legal collection: isolated from corporate documents.
+_legal_store = Chroma(
+    collection_name=LEGAL_COLLECTION,
+    embedding_function=get_embeddings(),
+    persist_directory=settings.chroma_persist_dir,
+)
+
+if _legal_store._collection.count() == 0:
+    raise RuntimeError("veridoc_legal is empty; run the legal indexer first")
+
+_legal_retriever = _legal_store.as_retriever(
+    search_type="mmr",
+    search_kwargs={
+        "k": settings.retrieve_k,
+        "fetch_k": settings.retrieve_fetch_k,
+    },
+)
+
+
 def retrieve(state: RAGState) -> dict:
-    q = state.get("query") or state["question"]
-    docs = retriever.invoke(q)
+    query = state.get("query") or state["question"]
+    is_legal = state.get("domain") == "indian_law"
+    retriever = _legal_retriever if is_legal else _corporate_retriever
+    docs = retriever.invoke(query)
+
     if not docs:
-        print(f"⚠️  No documents retrieved for query: {q!r}")
-    return {"docs": docs, "query": q}
+        print(f"No documents retrieved for query: {query!r}")
 
-
-
-if __name__ == "__main__":
-    # quick sanity check — always confirm retrieval works before wiring the full graph
-    test_state: RAGState = {"question": "What are Apple's main risk factors?", "query": "", 
-                             "docs": [], "scores": None, "answer": "", "grade": "", "retries": 0}
-    result = retrieve(test_state)
-    print(f"Retrieved {len(result['docs'])} docs for query: {result['query']!r}")
-    for d in result["docs"][:3]:
-        print(f"  [{d.metadata['source']} p{d.metadata['page_label']}] {d.page_content[:100]}")
+    print(
+        f"retrieval_domain={'indian_law' if is_legal else 'corporate'} "
+        f"docs={len(docs)}"
+    )
+    return {"docs": docs, "query": query}
