@@ -1,5 +1,5 @@
-# """
-# Module 8 — Wire the Graph
+﻿# """
+# Module 8 â€” Wire the Graph
 # Assembles all nodes into the actual LangGraph state machine.
 # Uses grade_docs_v2 (Differentiator 1) as the default grader, since it's
 # the version we validated catches real grading failures the base misses.
@@ -46,8 +46,8 @@
 #     print("\nRetries used:", result["retries"])
 #     print("Final grade:", result["grade"])
 """
-Module 8 — Wire the Graph
-Module 9 — Memory + Streaming
+Module 8 â€” Wire the Graph
+Module 9 â€” Memory + Streaming
 Assembles all nodes into the LangGraph state machine, with a checkpointer
 for multi-turn memory and replay, and stream() support for SSE later.
 Uses grade_docs_v2 (Differentiator 1) as the default grader.
@@ -61,17 +61,28 @@ from app.graph.nodes.grade import grade_docs_v2 as grade_docs
 from app.graph.nodes.rewrite import rewrite
 from app.graph.nodes.generate import generate
 from app.graph.router import route
-
-
+from app.graph.nodes.extract_entities import extract_entities
+from app.graph.nodes.graph_search import graph_search
 def build_graph():
     builder = StateGraph(RAGState)
+
+    # Existing nodes
     builder.add_node("retrieve", retrieve)
     builder.add_node("rerank", rerank)
     builder.add_node("grade_docs", grade_docs)
     builder.add_node("rewrite", rewrite)
     builder.add_node("generate", generate)
 
-    builder.add_edge(START, "retrieve")
+    # NEW: Add GraphRAG nodes
+    builder.add_node("extract_entities", extract_entities)
+    builder.add_node("graph_search", graph_search)
+
+    # UPDATED EDGES: Start with GraphRAG, then proceed to retrieval
+    builder.add_edge(START, "extract_entities")
+    builder.add_edge("extract_entities", "graph_search")
+    builder.add_edge("graph_search", "retrieve")
+
+    # Rest of your existing flow
     builder.add_edge("retrieve", "rerank")
     builder.add_edge("rerank", "grade_docs")
     builder.add_conditional_edges("grade_docs", route,
@@ -81,14 +92,20 @@ def build_graph():
 
     return builder.compile(checkpointer=MemorySaver())
 
-
 graph = build_graph()
 
 
 def _blank_state(question: str) -> dict:
     return {
-        "question": question, "query": "", "docs": [], "scores": None,
-        "answer": "", "grade": "", "retries": 0,
+        "question": question,
+        "query": "",
+        "docs": [],
+        "scores": None,
+        "answer": "",
+        "grade": "",
+        "retries": 0,
+        "entities": [],      # Added
+        "graph_results": []  # Added
     }
 
 

@@ -20,3 +20,11 @@ retry_*.txt
 *_check*.txt
 __pycache__/
 **/__pycache__/
+.venv/
+*.pyc
+*.backup
+*.working
+*.bak*
+chroma_db/
+backend/data/*.pkl
+project_audit/
