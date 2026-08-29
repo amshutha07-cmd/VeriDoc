@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import CorpusRegistry from "./pages/CorpusRegistry";
 import KnowledgeGraph from "./pages/KnowledgeGraph";
 import IngestionJobs from "./pages/IngestionJobs";
+import Evaluation from "./pages/Evaluation";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/corpus" component={CorpusRegistry} />
       <Route path="/graph" component={KnowledgeGraph} />
       <Route path="/ingestion" component={IngestionJobs} />
+      <Route path="/evaluation" component={Evaluation} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
@@ -35,6 +37,7 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+
 
 
 

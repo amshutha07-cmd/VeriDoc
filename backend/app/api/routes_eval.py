@@ -1,2 +1,67 @@
-# TODO: POST /eval/run, /eval/grid
-pass
+﻿"""Controlled deterministic evaluation endpoints."""
+import json
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
+from pathlib import Path
+from statistics import mean
+from fastapi import APIRouter, HTTPException
+from app.core.config import settings
+from app.evaluation.deterministic_eval import run_system
+from app.evaluation.baseline_graph import baseline_graph
+from app.graph.build_graph import graph
+
+router = APIRouter()
+_executor = ThreadPoolExecutor(max_workers=1)
+_state = {"status": "not_run", "result": None, "error": None}
+_result_path = Path(settings.data_dir) / "evaluation_latest.json"
+
+
+def _summary(label: str, rows: list[dict]) -> dict:
+    if not rows:
+        return {"label": label, "rows": 0}
+    return {
+        "label": label,
+        "rows": len(rows),
+        "evidence_coverage": round(mean(row.get("evidence_coverage", 0) for row in rows), 3),
+        "answer_coverage": round(mean(row.get("answer_coverage", 0) for row in rows), 3),
+        "citation_rate": round(mean(row.get("citation", 0) for row in rows), 3),
+        "average_retries": round(mean(row.get("retries", 0) for row in rows), 3),
+        "average_latency": round(mean(row.get("latency", 0) for row in rows), 2),
+    }
+
+
+def _run_evaluation() -> None:
+    try:
+        baseline_rows = run_system(baseline_graph, "BASELINE")
+        crag_rows = run_system(graph, "CRAG")
+        result = {
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "test_count": max(len(baseline_rows), len(crag_rows)),
+            "baseline": _summary("BASELINE", baseline_rows),
+            "crag": _summary("CRAG", crag_rows),
+        }
+        _result_path.parent.mkdir(parents=True, exist_ok=True)
+        _result_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
+        _state.update({"status": "completed", "result": result, "error": None})
+    except Exception as exc:
+        _state.update({"status": "failed", "result": None, "error": str(exc)})
+
+
+@router.post("/eval/run")
+def start_evaluation():
+    if _state["status"] == "running":
+        raise HTTPException(status_code=409, detail="Evaluation is already running")
+    _state.update({"status": "running", "result": None, "error": None})
+    _executor.submit(_run_evaluation)
+    return {"status": "running"}
+
+
+@router.get("/eval/status")
+def evaluation_status():
+    if _state["result"] is None and _result_path.exists() and _state["status"] == "not_run":
+        try:
+            _state["result"] = json.loads(_result_path.read_text(encoding="utf-8"))
+            _state["status"] = "completed"
+        except Exception:
+            pass
+    return _state

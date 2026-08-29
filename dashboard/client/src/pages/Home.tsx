@@ -215,16 +215,17 @@ export default function Home() {
           <div className="mb-3 px-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[#9b9388]">Research desk</div>
           <nav className="space-y-1">
             {[
-              { Icon: Search, label: "Ask the corpus", active: true },
-              { Icon: Database, label: "Corpus registry", active: false },
-              { Icon: Network, label: "Knowledge graph", active: false },
-              { Icon: Clock3, label: "Ingestion jobs", active: false },
-            ].map(({ Icon, label, active }) => (
-              <button key={label} onClick={() => !active && toast.info(`${label} view is ready for the next build.`)} className={`group flex w-full items-center gap-3 px-3 py-3 text-left text-[13px] transition-colors ${active ? "bg-[#1e2625] text-[#f8f4ec]" : "text-[#716a61] hover:bg-[#e5dfd4] hover:text-[#1e2625]"}`}>
+              { Icon: Search, label: "Ask the corpus", href: "/", active: true },
+              { Icon: Database, label: "Corpus registry", href: "/corpus", active: false },
+              { Icon: Network, label: "Knowledge graph", href: "/graph", active: false },
+              { Icon: Clock3, label: "Ingestion jobs", href: "/ingestion", active: false },
+              { Icon: Layers3, label: "Evaluation", href: "/evaluation", active: false },
+            ].map(({ Icon, label, href, active }) => (
+              <a key={label} href={href} className={`group flex w-full items-center gap-3 px-3 py-3 text-left text-[13px] transition-colors ${active ? "bg-[#1e2625] text-[#f8f4ec]" : "text-[#716a61] hover:bg-[#e5dfd4] hover:text-[#1e2625]"}`}>
                 <Icon className={`h-4 w-4 ${active ? "text-[#e5a182]" : "text-[#8f887e]"}`} strokeWidth={1.7} />
                 <span>{label}</span>
                 {active && <span className="ml-auto h-1.5 w-1.5 bg-[#b96845]" />}
-              </button>
+              </a>
             ))}
           </nav>
         </div>
@@ -296,6 +297,7 @@ export default function Home() {
     </div>
   );
 }
+
 
 
 
