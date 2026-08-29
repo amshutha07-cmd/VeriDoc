@@ -1,16 +1,42 @@
-﻿from app.graph_store.graph_handler import VeriDocGraph
+﻿from typing import Any
+from app.graph_store.graph_handler import VeriDocGraph
 
-def graph_search(state: dict):
-    """Hybrid Node: Combines Graph Traversal with Vector Context."""
-    entities = state.get("entities", [])
-    graph = VeriDocGraph()
-    nexus_context = []
 
-    for ent in entities:
-        # Perform a 2-hop search (The 'Amazing' part)
-        connections = graph.get_nexus_connections(ent["text"], depth=2)
-        for conn in connections:
-            node_data = graph.graph.nodes[conn]
-            nexus_context.append(f"Entity: {conn} ({node_data.get('type')})")
+def graph_search(state: dict[str, Any]) -> dict[str, Any]:
+    if state.get("domain") != "indian_law":
+        return {"graph_results": []}
 
-    return {"graph_results": nexus_context}
+    graph = VeriDocGraph(storage_path="data/graph_store.pkl")
+    keywords = [
+        str(entity.get("text", "")).lower()
+        for entity in state.get("entities", [])
+        if entity.get("text")
+    ]
+    if not keywords:
+        return {"graph_results": []}
+
+    results = []
+    seen = set()
+    for node_id, data in graph.graph.nodes(data=True):
+        if data.get("type") != "SourcePassage":
+            continue
+        haystack = str(data.get("excerpt", "")).lower()
+        if not any(keyword in haystack for keyword in keywords):
+            continue
+
+        key = (data.get("source"), data.get("page"), data.get("section"))
+        if key in seen:
+            continue
+        seen.add(key)
+        results.append({
+            "node": node_id,
+            "type": "SourcePassage",
+            "source": data.get("source", "2007-02.pdf"),
+            "page": data.get("page"),
+            "section": data.get("section"),
+            "excerpt": data.get("excerpt", ""),
+            "relationship": "Act → Section → Page → Passage",
+        })
+
+    results.sort(key=lambda item: (item["page"] or 0, str(item["section"])))
+    return {"graph_results": results[:10]}

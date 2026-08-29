@@ -1,4 +1,4 @@
-﻿"""
+"""
 POST /ask â€” streams the graph's node-by-node execution as Server-Sent Events.
 """
 import json
@@ -17,8 +17,21 @@ class AskRequest(BaseModel):
 
 def _blank_state(question: str) -> dict:
     return {
-        "question": question, "query": "", "docs": [], "scores": None,
-        "answer": "", "grade": "", "retries": 0,
+        "question": question,
+        "query": "",
+        "docs": [],
+        "scores": None,
+        "answer": "",
+        "grade": "",
+        "retries": 0,
+        "entities": [],
+        "graph_results": [],
+        "domain": "corporate",
+        "question_type": "general",
+        "jurisdiction": "",
+        "legal_entities": [],
+        "temporal_scope": [],
+        "source_filters": {},
     }
 
 
@@ -33,6 +46,16 @@ async def ask(req: AskRequest):
                 node_output = step[node_name]
 
                 payload = {"node": node_name}
+                for field in (
+                     "domain",
+                     "question_type",
+                     "jurisdiction",
+                     "entities",
+                     "graph_results",
+                ):
+                  if field in node_output:
+                    payload[field] = node_output[field]
+  
                 if "docs" in node_output:
                     payload["docs"] = [
                          {
@@ -41,7 +64,7 @@ async def ask(req: AskRequest):
                                 "page_label",
                                 d.metadata.get("page"),
                             ),
-                            "excerpt": " ".join(d.page_content[:400].split()),
+                            "excerpt": " ".join(str(d.page_content)[:400].split()),
                             "organization": d.metadata.get("organization", "Unknown"),
                             "category": d.metadata.get("category", "Unknown"),
                             "document_type": d.metadata.get("document_type", "Unknown"),
