@@ -7,12 +7,12 @@
 # from langchain_core.documents import Document
 # from langchain_chroma import Chroma
 # from app.core.config import settings
-# from app.ingestion.embedder import get_embeddings
+# from app.ingestion.embedder import get_corporate_embeddings
 
 
 # def build_store(chunks: List[Document]) -> Chroma:
 #     """First-time build: embeds chunks and writes them to disk."""
-#     embeddings = get_embeddings()
+#     embeddings = get_corporate_embeddings()
 #     store = Chroma.from_documents(
 #         documents=chunks,
 #         embedding=embeddings,
@@ -24,7 +24,7 @@
 
 # def reopen_store() -> Chroma:
 #     """Later runs: reopen the persisted index without re-embedding."""
-#     embeddings = get_embeddings()
+#     embeddings = get_corporate_embeddings()
 #     store = Chroma(
 #         collection_name=settings.chroma_collection_name,
 #         embedding_function=embeddings,
@@ -54,7 +54,7 @@ from typing import List
 from langchain_core.documents import Document
 from langchain_chroma import Chroma
 from app.core.config import settings
-from app.ingestion.embedder import get_embeddings
+from app.ingestion.embedder import get_corporate_embeddings
 
 BATCH_SIZE = 20          # chunks per request batch
 DELAY_SECONDS = 0       # pause between batches, stays safely under 100/min
@@ -62,7 +62,7 @@ DELAY_SECONDS = 0       # pause between batches, stays safely under 100/min
 
 def build_store(chunks: List[Document]) -> Chroma:
     """First-time build: embeds chunks in rate-limited batches, writes to disk."""
-    embeddings = get_embeddings()
+    embeddings = get_corporate_embeddings()
     store = Chroma(
         collection_name=settings.chroma_collection_name,
         embedding_function=embeddings,
@@ -83,7 +83,7 @@ def build_store(chunks: List[Document]) -> Chroma:
 
 def reopen_store() -> Chroma:
     """Later runs: reopen the persisted index without re-embedding."""
-    embeddings = get_embeddings()
+    embeddings = get_corporate_embeddings()
     store = Chroma(
         collection_name=settings.chroma_collection_name,
         embedding_function=embeddings,
@@ -124,3 +124,4 @@ if __name__ == "__main__":
             print(f"✅ Indexed batch {i//batch_size + 1} (Chunks {i} to {min(i + batch_size, total_chunks)})")
 
         print(f"✅ Successfully indexed all {total_chunks} chunks.")
+

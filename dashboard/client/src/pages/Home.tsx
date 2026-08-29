@@ -25,18 +25,24 @@ import {
 } from "lucide-react";
 
 const stages = [
-  { label: "Classify domain", status: "complete", meta: "indian_law" },
-  { label: "Extract entities", status: "complete", meta: "4 entities" },
-  { label: "Traverse legal graph", status: "active", meta: "Act â†’ Section" },
-  { label: "Retrieve passages", status: "complete", meta: "12 passages" },
-  { label: "Grade evidence", status: "complete", meta: "0.85 confidence" },
+  { label: "Route query", status: "complete", meta: "domain-aware" },
+  { label: "Retrieve passages", status: "complete", meta: "response-bound" },
+  { label: "Rerank candidates", status: "complete", meta: "precision layer" },
+  { label: "Grade evidence", status: "complete", meta: "support check" },
+  { label: "Generate answer", status: "active", meta: "citation-backed" },
 ];
 
-const sources = [
-  { id: "01", domain: "Acts", title: "Scheduled Tribes and Other Traditional Forest Dwellers Act, 2006", file: "2007-02.pdf", page: "p. 4", tag: "Direct support", color: "copper" },
-  { id: "02", domain: "Acts", title: "Forest rights and community resource provisions", file: "2007-02.pdf", page: "p. 6", tag: "Context", color: "sage" },
-  { id: "03", domain: "Constitution", title: "Constitution of India â€” tribal administration", file: "doc3.pdf", page: "p. 308", tag: "Graph link", color: "slate" },
-];
+type EvidenceSource = {
+  id: string;
+  domain: string;
+  title: string;
+  file: string;
+  page: string;
+  tag: string;
+  color: "copper" | "sage" | "slate";
+};
+
+const sources: EvidenceSource[] = [];
 
 const corpus = [
   ["Acts", "184", "indexed"],
@@ -45,32 +51,65 @@ const corpus = [
   ["Judgments", "1,204", "curated"],
 ];
 
-function extractSseAnswer(raw: string): string | null {
-  const events = raw.split(/\n\s*\n/);
-  for (const event of events) {
+function extractSsePayload(raw: string): any | null {
+  let latest: any | null = null;
+
+  for (const event of raw.split(/\n\s*\n/)) {
     const dataLine = event.split("\n").find((line) => line.startsWith("data:"));
     if (!dataLine) continue;
+
     try {
       const payload = JSON.parse(dataLine.slice(5).trim());
-      const answer = payload.answer ?? payload.result?.answer;
-      if (typeof answer === "string" && answer.trim()) return answer;
+      const answer = payload?.answer ?? payload?.result?.answer ?? payload?.response;
+      const evidence = payload?.evidence ?? payload?.result?.evidence ?? payload?.data?.evidence;
+
+      if (typeof answer === "string" && answer.trim()) {
+        latest = { ...(latest ?? {}), ...payload };
+      } else if (Array.isArray(evidence)) {
+        latest = { ...(latest ?? {}), evidence };
+      }
     } catch {
       // Ignore non-JSON keep-alive/event lines.
     }
   }
-  return null;
+
+  return latest;
+}
+function normalizeEvidence(payload: any): EvidenceSource[] {
+  const items = payload?.evidence ?? payload?.docs ?? payload?.result?.evidence ?? payload?.result?.docs ?? payload?.data?.evidence ?? payload?.data?.docs ?? [];
+  if (!Array.isArray(items)) return [];
+
+  return items.map((item: any, index: number) => {
+    const metadata = item?.metadata ?? item ?? {};
+    const file = String(metadata.source ?? metadata.file ?? "source");
+    const rawPage = String(metadata.page_label ?? metadata.page ?? "?");
+    const page = rawPage.toLowerCase().startsWith("p") ? rawPage : `p. ${rawPage}`;
+    const category = String(metadata.category ?? metadata.document_type ?? "Evidence");
+    const color = index % 3 === 0 ? "copper" : index % 3 === 1 ? "sage" : "slate";
+
+    return {
+      id: String(index + 1).padStart(2, "0"),
+      domain: category,
+      title: String(metadata.title ?? metadata.document_title ?? file),
+      file,
+      page,
+      tag: String(item?.tag ?? item?.support ?? "Evidence"),
+      color,
+    };
+  });
 }
 
 export default function Home() {
-  const [question, setQuestion] = useState("What forest rights are recognized under Section 3 of the Forest Rights Act 2006?");
-  const [answer, setAnswer] = useState("Under Section 3(1), forest rights include individual and community rights over forest land, habitation, self-cultivation, minor forest produce, grazing, community forest resources, traditional knowledge, and in-situ rehabilitation.");
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("Run a query to generate a grounded answer from the connected corpus.");
   const [isRunning, setIsRunning] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
-  const [selectedSource, setSelectedSource] = useState<(typeof sources)[number] | null>(null);
+  const [liveSources, setLiveSources] = useState<EvidenceSource[]>([]);
+  const [selectedSource, setSelectedSource] = useState<EvidenceSource | null>(null);
   const [sourceFilter, setSourceFilter] = useState("All");
-  const visibleSources = useMemo(() => sourceFilter === "All" ? sources : sources.filter((source) => source.domain === sourceFilter), [sourceFilter]);
+  const visibleSources = useMemo(() => sourceFilter === "All" ? liveSources : liveSources.filter((source) => source.domain === sourceFilter), [sourceFilter, liveSources]);
 
   const apiLabel = useMemo(() => (import.meta.env.VITE_VERIDOC_API_URL ? "Backend connected" : "Demo workspace"), []);
 
@@ -87,16 +126,18 @@ export default function Home() {
         });
         if (!response.ok) throw new Error(`Backend returned ${response.status}`);
         const rawBody = await response.text();
-        const remoteAnswer = response.headers.get("content-type")?.includes("text/event-stream")
-          ? extractSseAnswer(rawBody)
+        const payload = response.headers.get("content-type")?.includes("text/event-stream")
+          ? extractSsePayload(rawBody)
           : (() => {
               try {
-                const payload = JSON.parse(rawBody);
-                return payload.answer ?? payload.response ?? payload.result?.answer ?? null;
+                return JSON.parse(rawBody);
               } catch {
                 return null;
               }
             })();
+        const remoteAnswer = payload?.answer ?? payload?.response ?? payload?.result?.answer ?? null;
+        setLiveSources(normalizeEvidence(payload));
+        setSourceFilter("All");
         if (typeof remoteAnswer === "string" && remoteAnswer.trim()) setAnswer(remoteAnswer);
         toast.success("Evidence packet refreshed", { description: "Live response received from VeriDoc backend." });
       } else {
@@ -110,13 +151,53 @@ export default function Home() {
     }
   }
 
-  function handleFiles(files: FileList | null) {
+  async function handleFiles(files: FileList | null) {
     if (!files?.length) return;
-    const names = Array.from(files).map((file) => file.name);
-    setUploadedFiles((current) => Array.from(new Set([...current, ...names])));
-    toast.success(`${names.length} document${names.length > 1 ? "s" : ""} queued`, { description: "Extraction will begin in the ingestion workspace." });
-  }
 
+    const apiBase = import.meta.env.VITE_VERIDOC_API_URL as string | undefined;
+    const selected = Array.from(files);
+    const names = selected.map((file) => file.name);
+    setUploadedFiles((current) => Array.from(new Set([...current, ...names])));
+    setUploadProgress((current) => ({
+      ...current,
+      ...Object.fromEntries(names.map((name) => [name, 0])),
+    }));
+
+    if (!apiBase) {
+      toast.error("Backend URL is not configured", {
+        description: "Set VITE_VERIDOC_API_URL before uploading documents.",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    selected.forEach((file) => formData.append("files", file));
+
+    try {
+      const response = await fetch(`${apiBase.replace(/\/$/, "")}/ingest`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) throw new Error(`Backend returned ${response.status}`);
+
+      const result = await response.json();
+      setUploadProgress((current) => ({
+        ...current,
+        ...Object.fromEntries(names.map((name) => [name, 100])),
+      }));
+      toast.success("Documents indexed", {
+        description: `${result.pages ?? 0} pages and ${result.chunks ?? 0} chunks added to VeriDoc.`,
+      });
+    } catch (error) {
+      setUploadProgress((current) => ({
+        ...current,
+        ...Object.fromEntries(names.map((name) => [name, -1])),
+      }));
+      toast.error("Document ingestion failed", {
+        description: error instanceof Error ? error.message : "Check the backend logs.",
+      });
+    }
+  }
   return (
     <div className="min-h-screen bg-[#f4f0e8] text-[#1e2625]">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-[238px] border-r border-[#d9d1c4] bg-[#eee9df] lg:flex lg:flex-col">
@@ -174,7 +255,7 @@ export default function Home() {
             <div className="relative max-w-[690px]">
               <div className="mb-5 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[#b96845]"><span className="h-px w-7 bg-[#b96845]" /> Evidence desk / live <span className="h-1.5 w-1.5 rounded-full bg-[#6e8b78]" /></div>
               <h1 className="font-serif text-[clamp(2.5rem,5vw,5.3rem)] leading-[0.93] tracking-[-0.045em] text-[#1e2625]">Ask the corpus.<br /><em className="text-[#b96845]">Keep the proof.</em></h1>
-              <p className="mt-6 max-w-[490px] font-serif text-[17px] leading-relaxed text-[#515952]">An agentic research workspace for questions that need more than an answer. Search the law, follow its connections, and see exactly where every claim came from.</p>
+              <p className="mt-6 max-w-[490px] font-serif text-[17px] leading-relaxed text-[#515952]">An agentic research workspace for questions that need more than an answer. Search the corpus, follow its connections, and see exactly where every claim came from.</p>
             </div>
             <div className="absolute bottom-7 right-8 hidden w-[245px] font-mono text-[9px] uppercase leading-relaxed tracking-[0.15em] text-[#82786d] xl:block"><div className="mb-2 flex items-center justify-between border-b border-[#aa9d8e] pb-2"><span>Corpus health</span><span className="text-[#6e8b78]">98.4%</span></div><div className="flex items-center justify-between"><span>Last indexed</span><span>2m ago</span></div><div className="mt-5 flex items-center gap-2 text-[#8f8175]"><span className="h-2 w-2 bg-[#b96845]" /><span className="h-px flex-1 bg-[#b96845]" /><span className="h-2 w-px bg-[#b96845]" /><span className="h-px flex-1 bg-[#b96845]" /><span className="h-2 w-2 border border-[#b96845]" /><span className="text-[8px]">claim â†’ source â†’ confidence</span></div></div>
           </section>
@@ -187,9 +268,9 @@ export default function Home() {
             <section>
               <div className="mb-4 flex items-end justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8c857c]">01 / Research query</div><h2 className="font-serif text-3xl tracking-tight text-[#1e2625]">Open a line of inquiry</h2></div><button onClick={() => setQuestion("")} className="hidden items-center gap-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[#8c857c] hover:text-[#1e2625] sm:flex">Clear <X className="h-3 w-3" /></button></div>
               <div className="border border-[#cfc6b9] bg-[#fbfaf6] p-5 shadow-[7px_7px_0_#e0d8cd] sm:p-7">
-                <div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.15em] text-[#8c857c]"><span className="bg-[#e7efe8] px-2 py-1 text-[#547461]">Indian law</span><span className="bg-[#f2e8e3] px-2 py-1 text-[#a25d41]">Provision lookup</span><ChevronDown className="ml-auto h-4 w-4" /></div>
+                <div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.15em] text-[#8c857c]"><span className="bg-[#e7efe8] px-2 py-1 text-[#547461]">Evidence corpus</span><span className="bg-[#f2e8e3] px-2 py-1 text-[#a25d41]">Domain-aware retrieval</span><ChevronDown className="ml-auto h-4 w-4" /></div>
                 <textarea value={question} onChange={(event) => setQuestion(event.target.value)} rows={3} className="w-full resize-none border-0 bg-transparent p-0 font-serif text-[24px] leading-snug text-[#1e2625] outline-none placeholder:text-[#afa79c]" placeholder="Ask a question that deserves evidence..." />
-                <div className="mt-7 border-t border-[#e3ddd3] pt-4"><div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.13em] text-[#8e877e]"><span className="h-2 w-2 bg-[#b96845]" /> Dossier 004 <span className="text-[#c1b8ad]">/</span> source chain armed <span className="ml-auto text-[#6e8b78]">ready</span></div><div className="mb-5 flex items-center gap-2"><span className="font-mono text-[9px] text-[#b96845]">CLAIM</span><span className="h-px flex-1 bg-[#d8cfc3]" /><span className="h-2 w-px bg-[#b96845]" /><span className="font-mono text-[9px] text-[#8e877e]">PASSAGE</span><span className="h-px flex-1 bg-[#d8cfc3]" /><span className="h-2 w-2 rounded-full border border-[#6e8b78]" /><span className="font-mono text-[9px] text-[#6e8b78]">0.85</span></div><div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-2 font-mono text-[10px] text-[#8e877e]"><Sparkles className="h-3.5 w-3.5 text-[#8e877e]" /> Graph + vector retrieval enabled</div><button onClick={askQuestion} disabled={isRunning} className="flex items-center gap-2 bg-[#1e2625] px-5 py-3 text-[12px] font-semibold text-[#f8f4ec] transition hover:bg-[#33403d] disabled:cursor-wait disabled:opacity-70">{isRunning ? "Tracing evidenceâ€¦" : "Run research"}<ArrowUpRight className="h-4 w-4 text-[#e5a182]" /></button></div></div>
+                <div className="mt-7 border-t border-[#e3ddd3] pt-4"><div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.13em] text-[#8e877e]"><span className="h-2 w-2 bg-[#b96845]" /> Dossier 004 <span className="text-[#c1b8ad]">/</span> source chain armed <span className="ml-auto text-[#6e8b78]">ready</span></div><div className="mb-5 flex items-center gap-2"><span className="font-mono text-[9px] text-[#b96845]">CLAIM</span><span className="h-px flex-1 bg-[#d8cfc3]" /><span className="h-2 w-px bg-[#b96845]" /><span className="font-mono text-[9px] text-[#8e877e]">PASSAGE</span><span className="h-px flex-1 bg-[#d8cfc3]" /><span className="h-2 w-2 rounded-full border border-[#6e8b78]" /><span className="font-mono text-[9px] text-[#6e8b78]">0.85</span></div><div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-2 font-mono text-[10px] text-[#8e877e]"><Sparkles className="h-3.5 w-3.5 text-[#8e877e]" /> Response-bound evidence retrieval</div><button onClick={askQuestion} disabled={isRunning} className="flex items-center gap-2 bg-[#1e2625] px-5 py-3 text-[12px] font-semibold text-[#f8f4ec] transition hover:bg-[#33403d] disabled:cursor-wait disabled:opacity-70">{isRunning ? "Tracing evidenceâ€¦" : "Run research"}<ArrowUpRight className="h-4 w-4 text-[#e5a182]" /></button></div></div>
               </div>
 
               <div className="mt-9 mb-4 flex items-end justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8c857c]">02 / Evidence packet</div><h2 className="font-serif text-3xl tracking-tight text-[#1e2625]">A grounded answer</h2></div><div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#547461]"><span className="h-2 w-2 rounded-full bg-[#6e8b78]" /> Supported</div></div>
@@ -215,6 +296,13 @@ export default function Home() {
     </div>
   );
 }
+
+
+
+
+
+
+
 
 
 
