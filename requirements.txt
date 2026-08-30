@@ -1,4 +1,6 @@
-﻿pypdf
+﻿--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+pypdf
 python-docx
 fastapi
 uvicorn
@@ -12,5 +14,4 @@ langchain-chroma
 chromadb
 pydantic-settings
 sentence-transformers
-streamlit
 requests

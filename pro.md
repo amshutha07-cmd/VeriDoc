@@ -405,4 +405,510 @@ Claim nodes are derived from passage sentence slicing in the frontend rather tha
 
 SAFE NEXT STEP:
 Wire the live backend response metadata (model name, confidence score, and collection stats) into the Home.tsx badges to eliminate the remaining static cosmetic placeholders.
+```"It's a workspace label — each research session is framed as a 'case' for the provenance-tracking theme, since the app treats every query like an investigation with a claim-to-evidence chain. It's currently a static/placeholder number in the UI; making it a real per-session ID tied to the backend is on my list."
+
+That's it. Short, honest, sounds intentional. Don't overexplain — if they push further, just add: "the corpus health and last-indexed stats next to it are also placeholders right now — those get wired up once I connect real session tracking on the backend."
+
+Move on — want to keep going with CI/CD + CORS now?
+Ran command: `git branch --show-current; git status --short`
+Ran command: `Get-ChildItem -Path "backend" -Recurse | Where-Object { $_.FullName -notmatch '\\(node_modules|\.venv|venv|__pycache__|chroma_db|chroma_db_hf|chroma_db_gemini_backup_[^\\]*)(\\.*)?$' } | Select-Object FullName | ForEach-Object { Resolve-Path -Path $_.FullName -Relative }`
+Used tool: manage_task
+Ran command: `python -c "
+import os
+
+def print_tree(start_path, exclude_dirs):
+    for root, dirs, files in os.walk(start_path):
+        dirs[:] = [d for d in dirs if d not in exclude_dirs and not d.startswith('chroma_db_gemini_backup')]
+        level = root.replace(start_path, '').count(os.sep)
+        indent = '  ' * level
+        folder = os.path.basename(root)
+        if level == 0:
+            print(f'{folder}/')
+        else:
+            print(f'{indent}{folder}/')
+        subindent = '  ' * (level + 1)
+        for f in sorted(files):
+            print(f'{subindent}{f}')
+
+print('=== BACKEND TREE ===')
+print_tree('backend', {'node_modules', '.venv', 'venv', '__pycache__', 'chroma_db', 'chroma_db_hf', '.git', '.pytest_cache'})
+
+print('\n=== DASHBOARD CLIENT SRC TREE ===')
+print_tree('dashboard/client/src', {'node_modules', '.venv', 'venv', '__pycache__', 'chroma_db', 'chroma_db_hf', '.git'})
+"`
+Searched for "streamlit"
+Viewed requirements.txt:1-18
+Viewed README.md:1-212
+Ran command: `python -c "
+import os
+
+print('=== REPO ROOT FILES ===')
+for item in sorted(os.listdir('.')):
+    if os.path.isfile(item):
+        print('FILE:', item)
+    elif os.path.isdir(item):
+        print('DIR :', item)
+
+print('\n=== BACKUP / SCRATCH / DEBUG / WORKING FILES DETECTED ===')
+for root, dirs, files in os.walk('.'):
+    # filter out excluded dirs
+    dirs[:] = [d for d in dirs if d not in {'.git', 'node_modules', '.venv', 'venv', '__pycache__'}]
+    for f in files:
+        full_p = os.path.join(root, f)
+        rel_p = os.path.relpath(full_p, '.')
+        # check patterns
+        if any([
+            f.endswith('.bak') or '.bak' in f,
+            f.endswith('.working'),
+            f.startswith('debug_'),
+            f.startswith('_diag_'),
+            f.startswith('_check_'),
+            f.startswith('test_') and 'tests' not in root.replace('\\', '/'),
+            f.endswith('.txt') and f not in {'requirements.txt'},
+            f.endswith('.json') and f not in {'package.json', 'tsconfig.json', 'tsconfig.node.json', 'components.json', 'devcontainer.json'},
+            'before-' in f
+        ]):
+            print(rel_p)
+"`
+Ran command: `python -c "
+import os
+
+print('=== FRONTEND DIR ===')
+if os.path.exists('frontend'):
+    for root, dirs, files in os.walk('frontend'):
+        dirs[:] = [d for d in dirs if d not in {'node_modules', '.venv', 'venv', '__pycache__'}]
+        print(root, files)
+"`
+Ran command: `python -c "
+import os
+for root, dirs, files in os.walk('data'):
+    dirs[:] = [d for d in dirs if d not in {'node_modules', '.venv', 'venv', '__pycache__'}]
+    print(root, files)
+"`
+Ran command: `python -c "
+import os
+for root, dirs, files in os.walk('project_audit'):
+    dirs[:] = [d for d in dirs if d not in {'node_modules', '.venv', 'venv', '__pycache__'}]
+    print(root, files)
+"`
+Viewed requirements.txt:1-19
+
+### Project Audit Report
+
+---
+
+### 1. Full File Tree of `backend/` and `dashboard/client/src/`
+*(Excluding `node_modules`, `.venv`, `venv`, `__pycache__`, `chroma_db`, `chroma_db_hf`, and backup database folders)*
+
+#### **`backend/`**
 ```
+backend/
+├── .devcontainer/
+│   └── devcontainer.json
+├── .env
+├── .gitignore
+├── Dockerfile
+├── README.md
+├── ask_payload.json
+├── check_env.py
+├── debug_direct_llm_context.py
+├── debug_generate_runtime.py
+├── debug_generate_runtime.txt
+├── debug_generation_context.py
+├── debug_llm.py
+├── deterministic_full_retry.txt
+├── deterministic_results.txt
+├── direct_llm_context_result.txt
+├── evaluation_answerable_robust.txt
+├── evaluation_gemini_judge.txt
+├── evaluation_one_metric_at_a_time.txt
+├── evaluation_openrouter_smoke.txt
+├── expanded_chroma_build.txt
+├── expanded_chroma_hf_build.txt
+├── expanded_loader_check_final.txt
+├── expanded_loader_check_v2.txt
+├── expanded_retrieval_validation.txt
+├── final_answerable_eval.txt
+├── generation_context.txt
+├── improved_answerable_eval.txt
+├── render.yaml
+├── requirements.txt
+├── restored_stable_eval.txt
+├── retry_smoke.txt
+├── test_ask.py
+├── test_ingest.py
+├── validate_expanded_retrieval.py
+├── app/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── routes_ask.py
+│   │   ├── routes_ask.py.bak
+│   │   ├── routes_ask.py.bak_metadata
+│   │   ├── routes_eval.py
+│   │   ├── routes_graph.py
+│   │   ├── routes_ingest.py
+│   │   ├── routes_ingest.py.before-domain-routing-20260830-011436.bak
+│   │   ├── routes_ingest.py.before-embedding-fix-20260830-004536.bak
+│   │   └── routes_trace.py
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── config.py
+│   │   ├── state.py
+│   │   └── state.py.working
+│   ├── db/
+│   │   ├── __init__.py
+│   │   ├── models.py
+│   │   └── session.py
+│   ├── evaluation/
+│   │   ├── __init__.py
+│   │   ├── baseline_graph.py
+│   │   ├── deterministic_eval.py
+│   │   ├── evaluation_latest.json
+│   │   ├── grid_search.py
+│   │   ├── ragas_eval.py
+│   │   └── testset.py
+│   ├── graph/
+│   │   ├── __init__.py
+│   │   ├── build_graph.py
+│   │   ├── build_graph.py.working
+│   │   ├── debug_full_loop.py
+│   │   ├── llm_client.py
+│   │   ├── llm_client.py.backup
+│   │   ├── llm_client.py.working
+│   │   ├── prompts.py
+│   │   ├── router.py
+│   │   ├── source_filter.py
+│   │   └── nodes/
+│   │       ├── __init__.py
+│   │       ├── classify_domain.py
+│   │       ├── classify_domain.py.bak
+│   │       ├── debug_grade.py
+│   │       ├── debug_llm.py
+│   │       ├── extract_entities.py
+│   │       ├── extract_entities.py.bak
+│   │       ├── extract_entities.py.bak2
+│   │       ├── generate.py
+│   │       ├── generate.py.bak_20260825_151021
+│   │       ├── generate.py.bak_direct_prompt_20260825_212527
+│   │       ├── generate.py.bak_retry_20260825_213950
+│   │       ├── grade.py
+│   │       ├── graph_search.py
+│   │       ├── graph_search.py.bak
+│   │       ├── rerank.py
+│   │       ├── rerank.py.bak_20260825_203059
+│   │       ├── rerank.py.bak_section_20260825_204821
+│   │       ├── retrieve.py
+│   │       ├── retrieve.py.bak
+│   │       ├── retrieve.py.bak_20260825_151021
+│   │       └── rewrite.py
+│   ├── graph_store/
+│   │   └── graph_handler.py
+│   ├── ingestion/
+│   │   ├── __init__.py
+│   │   ├── chunker.py
+│   │   ├── embedder.py
+│   │   ├── graph_ingestor.py
+│   │   ├── loader.py
+│   │   ├── loader.py.bak_20260825_170952
+│   │   ├── loader.py.bak_docx_20260825_171414
+│   │   ├── vector_store.py
+│   │   └── vector_store.py.before-embedding-fix-20260830-004536.bak
+│   ├── legal_ingestion/
+│   │   ├── article_pages_doc3.json
+│   │   ├── article_positions_doc3.json
+│   │   ├── build_a1988_graph.py
+│   │   ├── build_constitution_graph.py
+│   │   ├── build_corporate_graph.py
+│   │   ├── build_forest_rights_graph.py
+│   │   ├── collect_legislation.py
+│   │   ├── discover_official_links.py
+│   │   ├── import_manual_pdfs.py
+│   │   ├── index_legal_chunks.py
+│   │   └── section_pages_a1988.json
+│   └── memory/
+│       ├── __init__.py
+│       └── checkpointer.py
+├── data/
+│   ├── .gitkeep
+│   ├── 677f65dda7c606ba1d13b8430af70555.pdf
+│   ├── Foundations_of_Information_Systems_-_WEB_oNlbGYl.pdf
+│   ├── aapl-20250927.pdf
+│   ├── evaluation_latest.json
+│   ├── graph_store.pkl
+│   ├── corporate_filings/
+│   │   ├── amazon_2025_annual_report.pdf
+│   │   ├── apple_fy2023_10k.pdf
+│   │   ├── apple_fy2024_10k.pdf
+│   │   ├── microsoft_fy2025_10k.docx
+│   │   └── nvidia_fy2025_annual_report.pdf
+│   ├── education/
+│   │   ├── Foundations_of_Information_Systems_-_WEB_oNlbGYl.pdf
+│   │   ├── IntroductionToBusiness-OP_8D04gAa.pdf
+│   │   ├── Principles-of-Data-Science-WEB.pdf
+│   │   ├── principles-economics-3e_-_WEB.pdf
+│   │   └── principles-financial-accounting_-_WEB.pdf
+│   ├── legal_corpus/
+│   │   ├── README.md
+│   │   ├── acts/
+│   │   │   ├── incoming/
+│   │   │   │   ├── 2007-02.pdf
+│   │   │   │   ├── A1988-59.pdf
+│   │   │   │   ├── doc1.pdf
+│   │   │   │   └── doc3.pdf
+│   │   │   ├── raw/
+│   │   │   └── text/
+│   │   ├── chunks/
+│   │   │   └── acts-pages.jsonl
+│   │   ├── judgments/
+│   │   ├── manifests/
+│   │   │   ├── acts-manifest.jsonl
+│   │   │   ├── discovered_official_links.jsonl
+│   │   │   ├── documents.json
+│   │   │   ├── legislation_downloads.all-failed.jsonl
+│   │   │   ├── legislation_downloads.jsonl
+│   │   │   ├── legislation_downloads.legacy-404.jsonl
+│   │   │   ├── legislation_seeds.jsonl
+│   │   │   ├── legislation_seeds.legacy-404.jsonl
+│   │   │   ├── legislation_seeds.placeholder.jsonl
+│   │   │   └── official_source_queue.jsonl
+│   │   └── rules/
+│   ├── macro_reports/
+│   ├── regulation/
+│   └── uploads/
+│       └── legal/
+│           └── 677f65dda7c606ba1d13b8430af70555.pdf
+└── tests/
+    ├── __init__.py
+    ├── test_eval.py
+    ├── test_graph.py
+    ├── test_ingestion.py
+    └── test_legal_ingestion.py
+```
+
+#### **`dashboard/client/src/`**
+```
+dashboard/client/src/
+├── App.tsx
+├── const.ts
+├── index.css
+├── index.css.before-card-cleanup.bak
+├── index.css.before-markdown-fix.bak
+├── index.css.before-markdown-fix-2.bak
+├── index.css.before-markdown-fix-3.bak
+├── index.css.before-workbench-upgrade.bak
+├── main.tsx
+├── components/
+│   ├── ClaimEvidenceMap.tsx
+│   ├── ErrorBoundary.tsx
+│   ├── ManusDialog.tsx
+│   ├── Map.tsx
+│   └── ui/
+│       ├── accordion.tsx
+│       ├── alert-dialog.tsx
+│       ├── alert.tsx
+│       ├── aspect-ratio.tsx
+│       ├── avatar.tsx
+│       ├── badge.tsx
+│       ├── breadcrumb.tsx
+│       ├── button-group.tsx
+│       ├── button.tsx
+│       ├── calendar.tsx
+│       ├── card.tsx
+│       ├── carousel.tsx
+│       ├── chart.tsx
+│       ├── checkbox.tsx
+│       ├── collapsible.tsx
+│       ├── command.tsx
+│       ├── context-menu.tsx
+│       ├── dialog.tsx
+│       ├── drawer.tsx
+│       ├── dropdown-menu.tsx
+│       ├── empty.tsx
+│       ├── field.tsx
+│       ├── form.tsx
+│       ├── hover-card.tsx
+│       ├── input-group.tsx
+│       ├── input-otp.tsx
+│       ├── input.tsx
+│       ├── item.tsx
+│       ├── kbd.tsx
+│       ├── label.tsx
+│       ├── menubar.tsx
+│       ├── navigation-menu.tsx
+│       ├── pagination.tsx
+│       ├── popover.tsx
+│       ├── progress.tsx
+│       ├── radio-group.tsx
+│       ├── resizable.tsx
+│       ├── scroll-area.tsx
+│       ├── select.tsx
+│       ├── separator.tsx
+│       ├── sheet.tsx
+│       ├── sidebar.tsx
+│       ├── skeleton.tsx
+│       ├── slider.tsx
+│       ├── sonner.tsx
+│       ├── spinner.tsx
+│       ├── switch.tsx
+│       ├── table.tsx
+│       ├── tabs.tsx
+│       ├── textarea.tsx
+│       ├── toggle-group.tsx
+│       ├── toggle.tsx
+│       └── tooltip.tsx
+├── contexts/
+│   └── ThemeContext.tsx
+├── hooks/
+│   ├── useComposition.ts
+│   ├── useMobile.tsx
+│   └── usePersistFn.ts
+├── lib/
+│   └── utils.ts
+└── pages/
+    ├── CorpusRegistry.tsx
+    ├── Evaluation.tsx
+    ├── Home.tsx
+    ├── Home.tsx.bak3
+    ├── Home.tsx.bak4
+    ├── Home.tsx.bak5
+    ├── Home.tsx.bak6
+    ├── IngestionJobs.tsx
+    ├── KnowledgeGraph.tsx
+    ├── KnowledgeGraph.tsx.bak
+    └── NotFound.tsx
+```
+
+---
+
+### 2. Remaining References to "streamlit" (Grep Case-Insensitive)
+
+| File | Line | Snippet |
+| :--- | :--- | :--- |
+| [README.md](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/README.md#L7) | 7 | `**Live demo:** [proofloop.streamlit.app](https://proofloop.streamlit.app)...` |
+| [README.md](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/README.md#L38) | 38 | `C --> UI[Streamlit interface]` |
+| [README.md](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/README.md#L67) | 67 | `1. The Streamlit UI displays the answer, trace, support state, retries...` |
+| [README.md](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/README.md#L89) | 89 | `- Custom PDF/DOCX upload and indexing from the Streamlit interface.` |
+| [README.md](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/README.md#L104-L105) | 104–105 | `\| Interface \| Streamlit \|`<br>`\| Deployment \| Streamlit Community Cloud \|` |
+| [README.md](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/README.md#L110) | 110 | `backend/streamlit_app.py # Public UI, upload flow, trace, evidence cards` |
+| [README.md](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/README.md#L144) | 144 | `streamlit run streamlit_app.py` |
+| [README.md](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/README.md#L173-L175) | 173, 175 | Describes deployment on `Streamlit Community Cloud`, `Streamlit Secrets` |
+| [requirements.txt](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/requirements.txt#L17) | 17 | `streamlit` *(root requirements.txt)* |
+| [backend/README.md](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/backend/README.md#L7) | 7, 38, 67, 89, 104, 105, 110, 143, 172, 174 | Identical legacy Streamlit documentation in backend/ |
+| [backend/render.yaml](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/backend/render.yaml#L3) | 3, 6 | `name: proofloop-streamlit`, `startCommand: ... streamlit run streamlit_app.py ...` |
+
+---
+
+### 3. Contents of `backend/requirements.txt`
+
+```text
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+pypdf
+python-docx
+fastapi
+uvicorn
+langgraph
+langchain-core
+langchain-community
+langchain-text-splitters
+langchain-openai
+langchain-huggingface
+langchain-chroma
+chromadb
+pydantic-settings
+sentence-transformers
+requests
+```
+*(Note: `streamlit` is **not** present in `backend/requirements.txt`, but remains in the root `requirements.txt`)*
+
+---
+
+### 4. Git Branch & Status
+
+- **Current Branch**: `master`
+- **`git status --short`**:
+  ```
+   M backend/chroma_db/chroma.sqlite3
+   M pro.md
+   M requirements.txt
+  ?? backend/chroma_db_gemini_backup_20260825_174802/
+  ?? chroma_db/
+  ```
+
+---
+
+### 5. Confirmation on Repo Root `README.md`
+
+**Confirmation: NO.**
+The [README.md](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/README.md) at the repository root **currently still describes the old Streamlit architecture**.
+- It lists `Streamlit` as the UI and `Streamlit Community Cloud` as the deployment target.
+- It instructs users to run `streamlit run streamlit_app.py` (referencing `backend/streamlit_app.py`, which is no longer in the backend tree).
+- It does **not** document the modern FastAPI backend (`backend/app/main.py`), endpoints, or the React/TypeScript dashboard (`dashboard/client/`).
+
+---
+
+### 6. Stray Duplicates, Leftover WIP Scratch Files, and Misplaced Root Items
+
+#### **A. Repo Root Misplaced / Stray Artifacts**
+1. [self-before-root-migration.bundle](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/self-before-root-migration.bundle) — Large Git bundle snapshot leftover from earlier repository restructuring.
+2. [routes_eval_top.txt](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/routes_eval_top.txt) — Scratch file containing text output dumps.
+3. [proofloop_deterministic_eval.py](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/proofloop_deterministic_eval.py) — Standalone evaluation script at root (superseded by `backend/app/evaluation/deterministic_eval.py`).
+4. [requirements.txt](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/requirements.txt) (at root) — Redundant root requirements file containing obsolete `streamlit` dependency (differs from `backend/requirements.txt`).
+5. [data/evaluation_latest.json](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/data/evaluation_latest.json) — Duplicate data file at root `data/` while active datasets live under `backend/data/`.
+6. [chroma_db/](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/chroma_db/) (at root) — Uncommitted Chroma vector folder at root while active storage is configured in `backend/chroma_db`.
+7. [frontend/](file:///c:/Users/amshu/Desktop/cam/DVD%203/SELF/frontend/) — Separate/legacy Vite frontend directory distinct from active `dashboard/client/`.
+
+#### **B. `backend/` WIP Scratch / Debug Scripts & Text Dumps**
+- **Debug / Scratch Python Scripts at backend root**:
+  - `backend/ask_payload.json`
+  - `backend/check_env.py`
+  - `backend/debug_direct_llm_context.py`
+  - `backend/debug_generate_runtime.py`
+  - `backend/debug_generation_context.py`
+  - `backend/debug_llm.py`
+  - `backend/test_ask.py`
+  - `backend/test_ingest.py`
+  - `backend/validate_expanded_retrieval.py`
+  - `backend/app/graph/debug_full_loop.py`
+  - `backend/app/graph/nodes/debug_grade.py`
+  - `backend/app/graph/nodes/debug_llm.py`
+- **Ad-hoc evaluation / terminal log text files in `backend/`**:
+  - `debug_generate_runtime.txt`, `deterministic_full_retry.txt`, `deterministic_results.txt`, `direct_llm_context_result.txt`, `evaluation_answerable_robust.txt`, `evaluation_gemini_judge.txt`, `evaluation_one_metric_at_a_time.txt`, `evaluation_openrouter_smoke.txt`, `expanded_chroma_build.txt`, `expanded_chroma_hf_build.txt`, `expanded_loader_check_final.txt`, `expanded_loader_check_v2.txt`, `expanded_retrieval_validation.txt`, `final_answerable_eval.txt`, `generation_context.txt`, `improved_answerable_eval.txt`, `restored_stable_eval.txt`, `retry_smoke.txt`
+
+#### **C. `.bak`, `.bak_*`, `.working`, and Timestamped Backup Files**
+- **In `backend/app/`**:
+  - `backend/app/api/routes_ask.py.bak`
+  - `backend/app/api/routes_ask.py.bak_metadata`
+  - `backend/app/api/routes_ingest.py.before-domain-routing-20260830-011436.bak`
+  - `backend/app/api/routes_ingest.py.before-embedding-fix-20260830-004536.bak`
+  - `backend/app/core/state.py.working`
+  - `backend/app/graph/build_graph.py.working`
+  - `backend/app/graph/llm_client.py.backup`
+  - `backend/app/graph/llm_client.py.working`
+  - `backend/app/graph/nodes/classify_domain.py.bak`
+  - `backend/app/graph/nodes/extract_entities.py.bak`
+  - `backend/app/graph/nodes/extract_entities.py.bak2`
+  - `backend/app/graph/nodes/generate.py.bak_20260825_151021`
+  - `backend/app/graph/nodes/generate.py.bak_direct_prompt_20260825_212527`
+  - `backend/app/graph/nodes/generate.py.bak_retry_20260825_213950`
+  - `backend/app/graph/nodes/graph_search.py.bak`
+  - `backend/app/graph/nodes/rerank.py.bak_20260825_203059`
+  - `backend/app/graph/nodes/rerank.py.bak_section_20260825_204821`
+  - `backend/app/graph/nodes/retrieve.py.bak`
+  - `backend/app/graph/nodes/retrieve.py.bak_20260825_151021`
+  - `backend/app/ingestion/loader.py.bak_20260825_170952`
+  - `backend/app/ingestion/loader.py.bak_docx_20260825_171414`
+  - `backend/app/ingestion/vector_store.py.before-embedding-fix-20260830-004536.bak`
+- **In `dashboard/client/src/`**:
+  - `dashboard/client/src/index.css.before-card-cleanup.bak`
+  - `dashboard/client/src/index.css.before-markdown-fix.bak`
+  - `dashboard/client/src/index.css.before-markdown-fix-2.bak`
+  - `dashboard/client/src/index.css.before-markdown-fix-3.bak`
+  - `dashboard/client/src/index.css.before-workbench-upgrade.bak`
+  - `dashboard/client/src/pages/Home.tsx.bak3`
+  - `dashboard/client/src/pages/Home.tsx.bak4`
+  - `dashboard/client/src/pages/Home.tsx.bak5`
+  - `dashboard/client/src/pages/Home.tsx.bak6`
+  - `dashboard/client/src/pages/KnowledgeGraph.tsx.bak`
