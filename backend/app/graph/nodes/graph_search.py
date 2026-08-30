@@ -144,7 +144,7 @@ def _search_corporate(graph, parsed):
 
         excerpt = str(data.get("excerpt", ""))
         haystack = excerpt.lower()
-        if text_keywords and not any(k in haystack for k in text_keywords):
+        if text_keywords and allowed_filing_sources is None and not any(k in haystack for k in text_keywords):
             continue
 
         key = (source, data.get("page"))
