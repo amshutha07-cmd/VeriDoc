@@ -21,10 +21,10 @@
 .streamlit/secrets.toml
 __pycache__/
 ask_payload.json
-chroma_db/
-chroma_db_*/
-chroma_db_gemini_backup_*/
-chroma_db_hf/
+#chroma_db/
+#chroma_db_*/
+#chroma_db_gemini_backup_*/
+#chroma_db_hf/
 data/
 debug_*.py
 debug_*.txt
