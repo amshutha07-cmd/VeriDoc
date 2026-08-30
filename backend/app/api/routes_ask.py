@@ -1,5 +1,5 @@
-﻿"""
-POST /ask Ã¢â‚¬â€ streams the graph's node-by-node execution as Server-Sent Events.
+"""
+POST /ask â€” streams the graph's node-by-node execution as Server-Sent Events.
 """
 import json
 from fastapi import APIRouter
@@ -131,6 +131,7 @@ async def ask_json(req: AskRequest):
             "domain": final_state.get("domain", ""),
             "question_type": final_state.get("question_type", ""),
             "model": final_state.get("model", ""),
+            "graph_results": final_state.get("graph_results", []),
         }
     except Exception as exc:
         return {"answer": "", "evidence": [], "docs": [], "error": str(exc)}

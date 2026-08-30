@@ -1,4 +1,4 @@
-﻿from typing import Any
+from typing import Any
 from app.graph_store.graph_handler import VeriDocGraph
 
 
@@ -7,11 +7,16 @@ def graph_search(state: dict[str, Any]) -> dict[str, Any]:
         return {"graph_results": []}
 
     graph = VeriDocGraph(storage_path="data/graph_store.pkl")
-    keywords = [
-        str(entity.get("text", "")).lower()
-        for entity in state.get("entities", [])
-        if entity.get("text")
-    ]
+    keywords = []
+    for entity in state.get("entities", []):
+        text = str(entity.get("text", "")).strip()
+        if not text:
+            continue
+        if ":" in text:
+            text = text.split(":", 1)[1].strip()
+        text = text.rstrip(".").lower()
+        if text and text != "none":
+            keywords.append(text)
     if not keywords:
         return {"graph_results": []}
 
