@@ -1,0 +1,6 @@
+backend/chroma_db/**/*.sqlite3 filter=lfs diff=lfs merge=lfs -text
+backend/chroma_db_hf/**/*.sqlite3 filter=lfs diff=lfs merge=lfs -text
+backend/chroma_db/**/*.bin filter=lfs diff=lfs merge=lfs -text
+backend/chroma_db_hf/**/*.bin filter=lfs diff=lfs merge=lfs -text
+backend/chroma_db/**/*.pickle filter=lfs diff=lfs merge=lfs -text
+backend/chroma_db_hf/**/*.pickle filter=lfs diff=lfs merge=lfs -text

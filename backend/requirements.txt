@@ -12,5 +12,4 @@ langchain-chroma
 chromadb
 pydantic-settings
 sentence-transformers
-streamlit
 requests

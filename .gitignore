@@ -1,4 +1,4 @@
-# TODO: gitignore definitions
+﻿# TODO: gitignore definitions
 venv/
 backend/venv/
 frontend/node_modules/
@@ -7,8 +7,8 @@ frontend/build/
 .env
 .env.*
 .streamlit/secrets.toml
-backend/chroma_db/
-backend/chroma_db_*/
+#backend/chroma_db/
+#backend/chroma_db_*/
 backend/data/
 *.pdf
 *.docx
@@ -25,7 +25,7 @@ __pycache__/
 *.backup
 *.working
 *.bak*
-chroma_db/
+#chroma_db/
 backend/data/*.pkl
 project_audit/
 backend/data/legal_corpus/acts/incoming/
@@ -36,3 +36,4 @@ backend/data/legal_corpus/judgments/
 backend/data/legal_corpus/manifests/*.jsonl
 backend/data/legal_corpus/manifests/*.legacy-404.jsonl
 backend/data/legal_corpus/manifests/*.all-failed.jsonl
+pro.md

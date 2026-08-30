@@ -1,0 +1,13 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Document shape -->
+  <path d="M16 6 H40 L50 16 V56 C50 57.1 49.1 58 48 58 H16 C14.9 58 14 57.1 14 56 V8 C14 6.9 14.9 6 16 6 Z"
+        fill="none" stroke="#2b2822" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Folded corner -->
+  <path d="M40 6 V14 C40 15.1 40.9 16 42 16 H50" fill="none" stroke="#2b2822" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Text lines -->
+  <line x1="20" y1="26" x2="38" y2="26" stroke="#77736c" stroke-width="2" stroke-linecap="round"/>
+  <line x1="20" y1="32" x2="38" y2="32" stroke="#77736c" stroke-width="2" stroke-linecap="round"/>
+  <!-- Verification checkmark circle, overlapping bottom-right -->
+  <circle cx="38" cy="44" r="12" fill="#f7f5f0" stroke="#2b2822" stroke-width="2.5"/>
+  <path d="M32.5 44 L36.5 48 L44 39.5" fill="none" stroke="#2b2822" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

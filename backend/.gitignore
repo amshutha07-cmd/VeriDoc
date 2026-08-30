@@ -49,8 +49,8 @@ frontend/.next/
 .env
 .env.*
 .streamlit/secrets.toml
-chroma_db/
-chroma_db_*/
+#chroma_db/
+#chroma_db_*/
 data/
 *.pdf
 *.docx
