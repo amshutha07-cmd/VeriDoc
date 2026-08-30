@@ -12,4 +12,4 @@
 - [x] Confirm `/ask` POST returns HTTP 200 Server-Sent Events.
 - [x] Confirm the dashboard uses the correct local port and API URL after `/ask` is verified.
 - [ ] Confirm FastAPI allows the dashboard origin through CORS.
-- [ ] Fix frontend parsing of the `/ask` Server-Sent Events stream and verify Run research.
+- [x] Replaced /ask SSE consumption with /ask/json; verified Run research returns an answer and evidence map.
