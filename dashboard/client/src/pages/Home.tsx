@@ -35,12 +35,14 @@ const stages = [
 
 type EvidenceSource = {
   id: string;
+  source?: string;
   domain: string;
   title: string;
   file: string;
   page: string;
   tag: string;
   color: "copper" | "sage" | "slate";
+  excerpt: string;
 };
 
 const sources: EvidenceSource[] = [];
@@ -95,6 +97,8 @@ function normalizeEvidence(payload: any): EvidenceSource[] {
       file,
       page,
       tag: String(item?.tag ?? item?.support ?? "Evidence"),
+      source: file,
+      excerpt: String(item?.excerpt ?? item?.page_content ?? metadata.excerpt ?? "No excerpt returned."),
       color,
     };
   });
@@ -300,7 +304,6 @@ export default function Home() {
     </div>
   );
 }
-
 
 
 
