@@ -1,0 +1,14 @@
+﻿import { useEffect, useState } from "react";
+import { Link } from "wouter";
+
+const API_URL = (import.meta.env.VITE_VERIDOC_API_URL as string | undefined)?.replace(/\/$/, "");
+type Stats = { handbook_chunks?: number; legal_chunks?: number; chunk_count?: number };
+
+export default function IngestionJobs() {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => { if (!API_URL) { setError("VITE_VERIDOC_API_URL is not configured."); return; } fetch(`${API_URL}/ingest/stats`).then((response) => { if (!response.ok) throw new Error(`Backend returned ${response.status}`); return response.json(); }).then(setStats).catch((reason) => setError(reason instanceof Error ? reason.message : "Could not load ingestion status.")); }, []);
+  return (
+    <main className="min-h-screen bg-[#f4f0e8] px-6 py-10 text-[#1e2625] sm:px-12 lg:px-20"><div className="mx-auto max-w-6xl"><div className="mb-10 flex items-start justify-between gap-6 border-b border-[#d9d1c4] pb-6"><div><div className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[#b96845]">VeriDoc / Ingestion jobs</div><h1 className="font-serif text-4xl tracking-tight">Ingestion monitor</h1><p className="mt-3 max-w-2xl font-serif text-[16px] leading-relaxed text-[#6a706a]">Live index status from the backend. The current API exposes persisted counts, not a historical job queue.</p></div><Link href="/" className="border border-[#1e2625] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] hover:bg-[#1e2625] hover:text-[#f8f5ef]">Back to investigation</Link></div>{error ? <div className="border border-[#b96845] bg-[#f8f5ef] p-6 text-sm text-[#8b3f2b]">{error}</div> : <><div className="grid gap-4 md:grid-cols-2"><article className="border border-[#d9d1c4] bg-[#f8f5ef] p-6"><div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8c857c]">Handbook / corporate</div><div className="mt-5 font-serif text-5xl">{stats?.handbook_chunks ?? stats?.chunk_count ?? "—"}</div><div className="mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[#6e8b78]">persisted chunks</div></article><article className="border border-[#d9d1c4] bg-[#f8f5ef] p-6"><div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8c857c]">Indian law</div><div className="mt-5 font-serif text-5xl">{stats?.legal_chunks ?? "—"}</div><div className="mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[#6e8b78]">persisted chunks</div></article></div><section className="mt-8 border border-[#d9d1c4] bg-[#f8f5ef] p-6"><div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8c857c]">Current limitation</div><p className="mt-3 max-w-3xl font-serif text-[17px] leading-relaxed text-[#3b4540]">Uploads complete synchronously through the current API. Historical job records, cancellation, retry controls, and per-file progress are not yet exposed.</p></section></>}</div></main>
+  );
+}
