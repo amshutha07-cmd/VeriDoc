@@ -1,5 +1,5 @@
 """
-POST /ask â€” streams the graph's node-by-node execution as Server-Sent Events.
+POST /ask - streams the graph's node-by-node execution as Server-Sent Events.
 """
 import json
 from fastapi import APIRouter

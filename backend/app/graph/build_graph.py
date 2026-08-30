@@ -1,5 +1,5 @@
-﻿# """
-# Module 8 â€” Wire the Graph
+# """
+# Module 8 - Wire the Graph
 # Assembles all nodes into the actual LangGraph state machine.
 # Uses grade_docs_v2 (Differentiator 1) as the default grader, since it's
 # the version we validated catches real grading failures the base misses.
@@ -46,8 +46,8 @@
 #     print("\nRetries used:", result["retries"])
 #     print("Final grade:", result["grade"])
 """
-Module 8 â€” Wire the Graph
-Module 9 â€” Memory + Streaming
+Module 8 - Wire the Graph
+Module 9 - Memory + Streaming
 Assembles all nodes into the LangGraph state machine, with a checkpointer
 for multi-turn memory and replay, and stream() support for SSE later.
 Uses grade_docs_v2 (Differentiator 1) as the default grader.

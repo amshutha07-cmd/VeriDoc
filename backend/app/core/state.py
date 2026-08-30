@@ -1,5 +1,5 @@
-﻿"""
-Module 2 â€” Graph State
+"""
+Module 2 - Graph State
 The shared dictionary every LangGraph node reads from and writes to.
 Defined first because every node's function signature depends on it.
 """

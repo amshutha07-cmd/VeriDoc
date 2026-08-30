@@ -1,4 +1,4 @@
-﻿/* Evidence Atelier direction: the dashboard is an evidence desk, not a generic SaaS grid. Copper marks provenance; mono labels expose system state. */
+/* Evidence Atelier direction: the dashboard is an evidence desk, not a generic SaaS grid. Copper marks provenance; mono labels expose system state. */
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import ClaimEvidenceMap from "../components/ClaimEvidenceMap";
@@ -150,7 +150,7 @@ export default function Home() {
   const apiLabel = useMemo(() => (import.meta.env.VITE_VERIDOC_API_URL ? "Backend connected" : "Demo workspace"), []);
 
   const anchoredCount = visibleSources.filter((source) => source.page && source.page !== "p. ?").length;
-  const confidenceLabel = visibleSources.length === 0 ? "â€”" : `${Math.round((anchoredCount / visibleSources.length) * 100)}%`;
+  const confidenceLabel = visibleSources.length === 0 ? "-" : `${Math.round((anchoredCount / visibleSources.length) * 100)}%`;
 
   async function askQuestion() {
     if (!question.trim()) return;
@@ -183,7 +183,7 @@ export default function Home() {
         toast.success("Evidence packet refreshed", { description: "Live response received from VeriDoc backend." });
       } else {
         await new Promise((resolve) => window.setTimeout(resolve, 850));
-        toast.success("Evidence packet refreshed", { description: "Demo response Â· add VITE_VERIDOC_API_URL for live backend calls." });
+        toast.success("Evidence packet refreshed", { description: "Demo response · add VITE_VERIDOC_API_URL for live backend calls." });
       }
     } catch (error) {
       toast.error("Backend request failed", { description: error instanceof Error ? error.message : "Check the API URL and CORS settings." });
@@ -243,7 +243,7 @@ export default function Home() {
 
   async function copyAnswerWithCitations() {
     const citations = visibleSources
-      .map((source, index) => `[${index + 1}] ${source.file} â€” ${source.page}`)
+      .map((source, index) => `[${index + 1}] ${source.file} - ${source.page}`)
       .join("\n");
     const text = `${answer}\n\nSources:\n${citations || "No sources available."}`;
     try {
@@ -328,7 +328,7 @@ export default function Home() {
                 </li>
               ))}
             </ol>
-            <p className="mt-6 font-serif text-[15px] leading-relaxed text-[#6a706a]">Every answer is grounded in retrieved passages. If evidence is weak, VeriDoc corrects the search before answering â€” and refuses rather than inventing facts when nothing supports the claim.</p>
+            <p className="mt-6 font-serif text-[15px] leading-relaxed text-[#6a706a]">Every answer is grounded in retrieved passages. If evidence is weak, VeriDoc corrects the search before answering - and refuses rather than inventing facts when nothing supports the claim.</p>
           </div>
         </div>
       )}
@@ -353,7 +353,7 @@ export default function Home() {
               <h1 className="font-serif text-[clamp(2.5rem,5vw,5.3rem)] leading-[0.93] tracking-[-0.045em] text-[#1e2625]">Ask the corpus.<br /><em className="text-[#b96845]">Keep the proof.</em></h1>
               <p className="mt-6 max-w-[490px] font-serif text-[17px] leading-relaxed text-[#515952]">An agentic research workspace for questions that need more than an answer. Search the corpus, follow its connections, and see exactly where every claim came from.</p>
             </div>
-            <div className="absolute bottom-7 right-8 hidden w-[245px] font-mono text-[9px] uppercase leading-relaxed tracking-[0.15em] text-[#82786d] xl:block"><div className="mb-2 flex items-center justify-between border-b border-[#aa9d8e] pb-2"><span>Corpus health</span><span className="text-[#6e8b78]">Not measured</span></div><div className="flex items-center justify-between"><span>Last indexed</span><span>Not exposed</span></div><div className="mt-5 flex items-center gap-2 text-[#8f8175]"><span className="h-2 w-2 bg-[#b96845]" /><span className="h-px flex-1 bg-[#b96845]" /><span className="h-2 w-px bg-[#b96845]" /><span className="h-px flex-1 bg-[#b96845]" /><span className="h-2 w-2 border border-[#b96845]" /><span className="text-[8px]">claim â†’ source â†’ confidence</span></div></div>
+            <div className="absolute bottom-7 right-8 hidden w-[245px] font-mono text-[9px] uppercase leading-relaxed tracking-[0.15em] text-[#82786d] xl:block"><div className="mb-2 flex items-center justify-between border-b border-[#aa9d8e] pb-2"><span>Corpus health</span><span className="text-[#6e8b78]">Not measured</span></div><div className="flex items-center justify-between"><span>Last indexed</span><span>Not exposed</span></div><div className="mt-5 flex items-center gap-2 text-[#8f8175]"><span className="h-2 w-2 bg-[#b96845]" /><span className="h-px flex-1 bg-[#b96845]" /><span className="h-2 w-px bg-[#b96845]" /><span className="h-px flex-1 bg-[#b96845]" /><span className="h-2 w-2 border border-[#b96845]" /><span className="text-[8px]">claim → source → confidence</span></div></div>
           </section>
 
           <section className="grid border-x border-b border-[#d9d1c4] bg-[#f8f5ef] sm:grid-cols-2 lg:grid-cols-4">
@@ -366,7 +366,7 @@ export default function Home() {
               <div className="border border-[#cfc6b9] bg-[#fbfaf6] p-5 shadow-[7px_7px_0_#e0d8cd] sm:p-7">
                 <div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.15em] text-[#8c857c]"><span className="bg-[#e7efe8] px-2 py-1 text-[#547461]">Evidence corpus</span><span className="bg-[#f2e8e3] px-2 py-1 text-[#a25d41]">Domain-aware retrieval</span><ChevronDown className="ml-auto h-4 w-4" /></div>
                 <textarea value={question} onChange={(event) => setQuestion(event.target.value)} rows={3} className="w-full resize-none border-0 bg-transparent p-0 font-serif text-[24px] leading-snug text-[#1e2625] outline-none placeholder:text-[#afa79c]" placeholder="Ask a question that deserves evidence..." />
-                <div className="mt-7 border-t border-[#e3ddd3] pt-4"><div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.13em] text-[#8e877e]"><span className="h-2 w-2 bg-[#b96845]" /> Dossier 004 <span className="text-[#c1b8ad]">/</span> source chain armed <span className="ml-auto text-[#6e8b78]">ready</span></div><div className="mb-5 flex items-center gap-2"><span className="font-mono text-[9px] text-[#b96845]">CLAIM</span><span className="h-px flex-1 bg-[#d8cfc3]" /><span className="h-2 w-px bg-[#b96845]" /><span className="font-mono text-[9px] text-[#8e877e]">PASSAGE</span><span className="h-px flex-1 bg-[#d8cfc3]" /><span className="h-2 w-2 rounded-full border border-[#6e8b78]" /><span className="font-mono text-[9px] text-[#6e8b78]">Not scored</span></div><div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-2 font-mono text-[10px] text-[#8e877e]"><Sparkles className="h-3.5 w-3.5 text-[#8e877e]" /> Response-bound evidence retrieval</div><button onClick={askQuestion} disabled={isRunning} className="flex items-center gap-2 bg-[#1e2625] px-5 py-3 text-[12px] font-semibold text-[#f8f4ec] transition hover:bg-[#33403d] disabled:cursor-wait disabled:opacity-70">{isRunning ? "Tracing evidenceâ€¦" : "Run research"}<ArrowUpRight className="h-4 w-4 text-[#e5a182]" /></button></div></div>
+                <div className="mt-7 border-t border-[#e3ddd3] pt-4"><div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.13em] text-[#8e877e]"><span className="h-2 w-2 bg-[#b96845]" /> Dossier 004 <span className="text-[#c1b8ad]">/</span> source chain armed <span className="ml-auto text-[#6e8b78]">ready</span></div><div className="mb-5 flex items-center gap-2"><span className="font-mono text-[9px] text-[#b96845]">CLAIM</span><span className="h-px flex-1 bg-[#d8cfc3]" /><span className="h-2 w-px bg-[#b96845]" /><span className="font-mono text-[9px] text-[#8e877e]">PASSAGE</span><span className="h-px flex-1 bg-[#d8cfc3]" /><span className="h-2 w-2 rounded-full border border-[#6e8b78]" /><span className="font-mono text-[9px] text-[#6e8b78]">Not scored</span></div><div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-2 font-mono text-[10px] text-[#8e877e]"><Sparkles className="h-3.5 w-3.5 text-[#8e877e]" /> Response-bound evidence retrieval</div><button onClick={askQuestion} disabled={isRunning} className="flex items-center gap-2 bg-[#1e2625] px-5 py-3 text-[12px] font-semibold text-[#f8f4ec] transition hover:bg-[#33403d] disabled:cursor-wait disabled:opacity-70">{isRunning ? "Tracing evidence..." : "Run research"}<ArrowUpRight className="h-4 w-4 text-[#e5a182]" /></button></div></div>
               </div>
 
               <div className="mt-9 mb-4 flex items-end justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8c857c]">02 / Evidence packet</div><h2 className="font-serif text-3xl tracking-tight text-[#1e2625]">A grounded answer</h2></div><div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#547461]"><span className="h-2 w-2 rounded-full bg-[#6e8b78]" /> Supported</div></div>
@@ -390,7 +390,7 @@ export default function Home() {
               <section>
                 <div className="mb-4 flex items-end justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8c857c]">04 / Source passages</div><h2 className="font-serif text-2xl tracking-tight">Proof, in context</h2></div><div className="flex flex-wrap items-center gap-2">{filterOptions.map((filter) => <button key={filter} onClick={() => setSourceFilter(filter)} className={`font-mono text-[9px] uppercase tracking-[0.1em] ${sourceFilter === filter ? "text-[#b96845]" : "text-[#9a9186]"}`}>{filter}</button>)}</div></div>
                 <div className="space-y-2">
-                  {visibleSources.length === 0 && <p className="font-serif text-sm text-[#8c857c]">No source passages yet â€” run a query to populate this list.</p>}
+                  {visibleSources.length === 0 && <p className="font-serif text-sm text-[#8c857c]">No source passages yet - run a query to populate this list.</p>}
                   {visibleSources.map((source) => {
                     const isExpanded = expandedSourceId === source.id;
                     return (
@@ -400,7 +400,7 @@ export default function Home() {
                             <span className={`font-mono text-[10px] ${source.color === "copper" ? "text-[#b96845]" : source.color === "sage" ? "text-[#547461]" : "text-[#65716e]"}`}>{source.id}</span>
                             <div className="min-w-0 flex-1">
                               <div className="text-[12px] leading-snug text-[#3b4540]">{source.title}</div>
-                              <div className="mt-2 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.08em] text-[#958d83]"><span>{source.file}</span><span>Â·</span><span>{source.page}</span><span className="ml-auto text-[#6e8b78]">{source.tag}</span></div>
+                              <div className="mt-2 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.08em] text-[#958d83]"><span>{source.file}</span><span>·</span><span>{source.page}</span><span className="ml-auto text-[#6e8b78]">{source.tag}</span></div>
                             </div>
                             <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-[#b1a89d] transition group-hover:text-[#b96845] ${isExpanded ? "rotate-180" : ""}`} />
                           </div>
@@ -418,7 +418,7 @@ export default function Home() {
         </div>
       </main>
 
-      {uploadOpen && <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#1e2625]/35 p-5" onClick={() => setUploadOpen(false)}><div className="w-full max-w-[560px] border border-[#cfc6b9] bg-[#f8f5ef] p-6 shadow-[10px_10px_0_#1e2625] sm:p-8" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[#b96845]">Ingestion dossier</div><h2 className="font-serif text-3xl">Add source documents</h2><p className="mt-2 max-w-[390px] font-serif text-[15px] leading-relaxed text-[#6a706a]">Queue Acts, Rules, amendments, or judgments. The backend will hash, extract, and index them without rebuilding the corpus.</p></div><button onClick={() => setUploadOpen(false)} className="text-[#8c857c] hover:text-[#1e2625]"><X className="h-5 w-5" /></button></div><select value={uploadDomain} onChange={(event) => setUploadDomain(event.target.value as "legal" | "corporate")} className="mt-7 w-full border border-[#b9aea0] bg-[#f2eee7] px-3 py-3 text-[12px] text-[#3b4540]"><option value="legal">Indian law collection</option><option value="corporate">Corporate / handbook collection</option></select><label className="mt-7 flex cursor-pointer flex-col items-center justify-center border border-dashed border-[#b9aea0] bg-[#f2eee7] px-5 py-10 text-center transition hover:border-[#b96845] hover:bg-[#f0e7df]"><input type="file" accept="application/pdf,.docx" multiple className="sr-only" onChange={(event) => { handleFiles(event.target.files); setUploadOpen(false); }} /><FileUp className="h-8 w-8 text-[#b96845]" /><span className="mt-3 text-[13px] font-medium">Drop PDFs or DOCX files here</span><span className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[#958d83]">PDF Â· DOCX Â· multiple files supported</span></label><div className="mt-5 flex items-center gap-2 font-mono text-[10px] text-[#8c857c]"><ShieldCheck className="h-3.5 w-3.5 text-[#6e8b78]" /> SHA-256 provenance is preserved at ingestion</div></div></div>}
+      {uploadOpen && <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#1e2625]/35 p-5" onClick={() => setUploadOpen(false)}><div className="w-full max-w-[560px] border border-[#cfc6b9] bg-[#f8f5ef] p-6 shadow-[10px_10px_0_#1e2625] sm:p-8" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[#b96845]">Ingestion dossier</div><h2 className="font-serif text-3xl">Add source documents</h2><p className="mt-2 max-w-[390px] font-serif text-[15px] leading-relaxed text-[#6a706a]">Queue Acts, Rules, amendments, or judgments. The backend will hash, extract, and index them without rebuilding the corpus.</p></div><button onClick={() => setUploadOpen(false)} className="text-[#8c857c] hover:text-[#1e2625]"><X className="h-5 w-5" /></button></div><select value={uploadDomain} onChange={(event) => setUploadDomain(event.target.value as "legal" | "corporate")} className="mt-7 w-full border border-[#b9aea0] bg-[#f2eee7] px-3 py-3 text-[12px] text-[#3b4540]"><option value="legal">Indian law collection</option><option value="corporate">Corporate / handbook collection</option></select><label className="mt-7 flex cursor-pointer flex-col items-center justify-center border border-dashed border-[#b9aea0] bg-[#f2eee7] px-5 py-10 text-center transition hover:border-[#b96845] hover:bg-[#f0e7df]"><input type="file" accept="application/pdf,.docx" multiple className="sr-only" onChange={(event) => { handleFiles(event.target.files); setUploadOpen(false); }} /><FileUp className="h-8 w-8 text-[#b96845]" /><span className="mt-3 text-[13px] font-medium">Drop PDFs or DOCX files here</span><span className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[#958d83]">PDF · DOCX · multiple files supported</span></label><div className="mt-5 flex items-center gap-2 font-mono text-[10px] text-[#8c857c]"><ShieldCheck className="h-3.5 w-3.5 text-[#6e8b78]" /> SHA-256 provenance is preserved at ingestion</div></div></div>}
     </div>
   );
 }

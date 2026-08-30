@@ -1,5 +1,5 @@
-﻿# """
-# Module 1d â€” Store
+# """
+# Module 1d - Store
 # Persists embedded chunks in Chroma so ingestion runs once, not on every
 # app start. Also exposes a reopen() to load an already-built index.
 # """
@@ -42,7 +42,7 @@
 #     store = build_store(chunks)
 #     print(f"Indexed {len(chunks)} chunks into '{settings.chroma_collection_name}'")
 """
-Module 1d â€” Store
+Module 1d - Store
 Persists embedded chunks in Chroma so ingestion runs once, not on every
 app start. Also exposes a reopen() to load an already-built index.
 
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     # 2. Load and Chunk
     documents = load_pdf_directory(data_path)
     if not documents:
-        print("❌ Error: No documents found. Check if PDFs are in backend/data/")
+        print(" Error: No documents found. Check if PDFs are in backend/data/")
     else:
         chunks = chunk_documents(documents)
 
@@ -121,7 +121,7 @@ if __name__ == "__main__":
         for i in range(0, total_chunks, batch_size):
             batch = chunks[i : i + batch_size]
             store.add_documents(batch)
-            print(f"✅ Indexed batch {i//batch_size + 1} (Chunks {i} to {min(i + batch_size, total_chunks)})")
+            print(f" Indexed batch {i//batch_size + 1} (Chunks {i} to {min(i + batch_size, total_chunks)})")
 
-        print(f"✅ Successfully indexed all {total_chunks} chunks.")
+        print(f" Successfully indexed all {total_chunks} chunks.")
 
