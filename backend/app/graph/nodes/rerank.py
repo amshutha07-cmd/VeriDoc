@@ -1,10 +1,17 @@
 ﻿"""Rerank node with navigation filtering and source/page diversity."""
 
-from sentence_transformers import CrossEncoder
 from app.core.state import RAGState
 from app.core.config import settings
 
-reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+_reranker = None
+
+
+def _get_reranker():
+    global _reranker
+    if _reranker is None:
+        from sentence_transformers import CrossEncoder
+        _reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+    return _reranker
 
 
 def _is_noise(document) -> bool:
@@ -17,7 +24,7 @@ def _is_noise(document) -> bool:
 
     # Remove short SEC/browser footer chunks, but preserve substantive text
     # that happens to contain a SEC URL at the end.
-    if "https://www.sec.gov/" in lower and len(text ) < 350:
+    if "https://www.sec.gov/" in lower and len(text) < 350:
         return True
 
     # Remove obvious short page-footer fragments.
@@ -45,7 +52,7 @@ def rerank(state: RAGState) -> dict:
     # Always use the actual current question when query is empty.
     query = (state.get("query") or state.get("question") or "").strip()
     pairs = [(query, document.page_content) for document in documents]
-    raw_scores = [float(score) for score in reranker.predict(pairs)]
+    raw_scores = [float(score) for score in _get_reranker().predict(pairs)]
 
     # The cross-encoder often over-ranks a narrow cybersecurity fragment for
     # broad questions such as "main risk factors". Add a small, query-aware
@@ -131,4 +138,3 @@ if __name__ == "__main__":
             f"[{metadata.get('source')} p{metadata.get('page_label', metadata.get('page'))}] "
             f"{' '.join(document.page_content.split())[:120]}"
         )
-
