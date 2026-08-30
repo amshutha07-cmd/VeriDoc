@@ -1,5 +1,5 @@
 /* Evidence Atelier direction: the dashboard is an evidence desk, not a generic SaaS grid. Copper marks provenance; mono labels expose system state. */
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import ClaimEvidenceMap from "../components/ClaimEvidenceMap";
 import { Streamdown } from "streamdown";
@@ -46,13 +46,6 @@ type EvidenceSource = {
 };
 
 const sources: EvidenceSource[] = [];
-
-const corpus = [
-  ["Acts", "184", "indexed"],
-  ["Rules", "427", "indexed"],
-  ["Amendments", "96", "linked"],
-  ["Judgments", "1,204", "curated"],
-];
 
 function extractSsePayload(raw: string): any | null {
   let latest: any | null = null;
@@ -115,6 +108,25 @@ export default function Home() {
   const [liveSources, setLiveSources] = useState<EvidenceSource[]>([]);
   const [selectedSource, setSelectedSource] = useState<EvidenceSource | null>(null);
   const [sourceFilter, setSourceFilter] = useState("All");
+  const [corpus, setCorpus] = useState<[string, string, string][]>([
+    ["Legal chunks", "-", "loading"],
+    ["Corporate chunks", "-", "loading"],
+  ]);
+  const [modelUsed, setModelUsed] = useState<string | null>(null);
+
+  useEffect(() => {
+    const apiBase = import.meta.env.VITE_VERIDOC_API_URL as string | undefined;
+    if (!apiBase) { setCorpus([["Legal chunks", "-", "no backend"], ["Corporate chunks", "-", "no backend"]]); return; }
+    fetch(`${apiBase}/ingest/stats`)
+      .then((res) => res.json())
+      .then((data) => {
+        setCorpus([
+          ["Legal chunks", String(data?.legal_chunks ?? "-"), "indexed"],
+          ["Corporate chunks", String(data?.handbook_chunks ?? "-"), "indexed"],
+        ]);
+      })
+      .catch(() => setCorpus([["Legal chunks", "-", "unavailable"], ["Corporate chunks", "-", "unavailable"]]));
+  }, []);
   const visibleSources = useMemo(() => sourceFilter === "All" ? liveSources : liveSources.filter((source) => source.domain === sourceFilter), [sourceFilter, liveSources]);
 
   const apiLabel = useMemo(() => (import.meta.env.VITE_VERIDOC_API_URL ? "Backend connected" : "Demo workspace"), []);
@@ -142,6 +154,7 @@ export default function Home() {
               }
             })();
         const remoteAnswer = payload?.answer ?? payload?.response ?? payload?.result?.answer ?? null;
+      setModelUsed(payload?.model ?? null);
         setLiveSources(normalizeEvidence(payload));
         setSourceFilter("All");
         if (typeof remoteAnswer === "string" && remoteAnswer.trim()) setAnswer(remoteAnswer);
@@ -278,14 +291,14 @@ export default function Home() {
               <div className="border border-[#cfc6b9] bg-[#fbfaf6] p-5 shadow-[7px_7px_0_#e0d8cd] sm:p-7">
                 <div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.15em] text-[#8c857c]"><span className="bg-[#e7efe8] px-2 py-1 text-[#547461]">Evidence corpus</span><span className="bg-[#f2e8e3] px-2 py-1 text-[#a25d41]">Domain-aware retrieval</span><ChevronDown className="ml-auto h-4 w-4" /></div>
                 <textarea value={question} onChange={(event) => setQuestion(event.target.value)} rows={3} className="w-full resize-none border-0 bg-transparent p-0 font-serif text-[24px] leading-snug text-[#1e2625] outline-none placeholder:text-[#afa79c]" placeholder="Ask a question that deserves evidence..." />
-                <div className="mt-7 border-t border-[#e3ddd3] pt-4"><div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.13em] text-[#8e877e]"><span className="h-2 w-2 bg-[#b96845]" /> Dossier 004 <span className="text-[#c1b8ad]">/</span> source chain armed <span className="ml-auto text-[#6e8b78]">ready</span></div><div className="mb-5 flex items-center gap-2"><span className="font-mono text-[9px] text-[#b96845]">CLAIM</span><span className="h-px flex-1 bg-[#d8cfc3]" /><span className="h-2 w-px bg-[#b96845]" /><span className="font-mono text-[9px] text-[#8e877e]">PASSAGE</span><span className="h-px flex-1 bg-[#d8cfc3]" /><span className="h-2 w-2 rounded-full border border-[#6e8b78]" /><span className="font-mono text-[9px] text-[#6e8b78]">0.85</span></div><div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-2 font-mono text-[10px] text-[#8e877e]"><Sparkles className="h-3.5 w-3.5 text-[#8e877e]" /> Response-bound evidence retrieval</div><button onClick={askQuestion} disabled={isRunning} className="flex items-center gap-2 bg-[#1e2625] px-5 py-3 text-[12px] font-semibold text-[#f8f4ec] transition hover:bg-[#33403d] disabled:cursor-wait disabled:opacity-70">{isRunning ? "Tracing evidence…" : "Run research"}<ArrowUpRight className="h-4 w-4 text-[#e5a182]" /></button></div></div>
+                <div className="mt-7 border-t border-[#e3ddd3] pt-4"><div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.13em] text-[#8e877e]"><span className="h-2 w-2 bg-[#b96845]" /> Dossier 004 <span className="text-[#c1b8ad]">/</span> source chain armed <span className="ml-auto text-[#6e8b78]">ready</span></div><div className="mb-5 flex items-center gap-2"><span className="font-mono text-[9px] text-[#b96845]">CLAIM</span><span className="h-px flex-1 bg-[#d8cfc3]" /><span className="h-2 w-px bg-[#b96845]" /><span className="font-mono text-[9px] text-[#8e877e]">PASSAGE</span><span className="h-px flex-1 bg-[#d8cfc3]" /><span className="h-2 w-2 rounded-full border border-[#6e8b78]" /><span className="font-mono text-[9px] text-[#6e8b78]">Not scored</span></div><div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-2 font-mono text-[10px] text-[#8e877e]"><Sparkles className="h-3.5 w-3.5 text-[#8e877e]" /> Response-bound evidence retrieval</div><button onClick={askQuestion} disabled={isRunning} className="flex items-center gap-2 bg-[#1e2625] px-5 py-3 text-[12px] font-semibold text-[#f8f4ec] transition hover:bg-[#33403d] disabled:cursor-wait disabled:opacity-70">{isRunning ? "Tracing evidence…" : "Run research"}<ArrowUpRight className="h-4 w-4 text-[#e5a182]" /></button></div></div>
               </div>
 
               <div className="mt-9 mb-4 flex items-end justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8c857c]">02 / Evidence packet</div><h2 className="font-serif text-3xl tracking-tight text-[#1e2625]">A grounded answer</h2></div><div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#547461]"><span className="h-2 w-2 rounded-full bg-[#6e8b78]" /> Supported</div></div>
               <article className="border border-[#cfc6b9] bg-[#fbfaf6] p-5 sm:p-8">
-                <div className="mb-5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#8c857c]"><span className="flex h-5 w-5 items-center justify-center bg-[#b96845] text-[9px] text-white">01</span><span>Claim packet / direct support</span><span className="ml-auto text-[#6e8b78]">verified</span></div><div className="flex items-start justify-between gap-6"><div className="answer-markdown max-w-[690px] font-serif text-[20px] leading-[1.52] text-[#2d3733]"><Streamdown>{answer}</Streamdown></div><div className="hidden border-l border-[#d9d1c4] pl-5 text-right sm:block"><div className="font-mono text-2xl text-[#b96845]">0.85</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-[#8c857c]">confidence</div></div></div>
+                <div className="mb-5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#8c857c]"><span className="flex h-5 w-5 items-center justify-center bg-[#b96845] text-[9px] text-white">01</span><span>Claim packet / direct support</span><span className="ml-auto text-[#6e8b78]">verified</span></div><div className="flex items-start justify-between gap-6"><div className="answer-markdown max-w-[690px] font-serif text-[20px] leading-[1.52] text-[#2d3733]"><Streamdown>{answer}</Streamdown></div><div className="hidden border-l border-[#d9d1c4] pl-5 text-right sm:block"><div className="font-mono text-2xl text-[#b96845]">�</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-[#8c857c]">confidence</div></div></div>
                 <div className="hidden"><div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#8c857c]"><GitBranch className="h-3.5 w-3.5 text-[#8c857c]" /> Claim provenance <span className="ml-auto text-[#b96845]">{visibleSources[0] ? `01 | ${visibleSources[0].file} | ${visibleSources[0].page}` : "Awaiting live evidence"}</span></div><div className="flex flex-wrap items-center gap-2 font-mono text-[10px] text-[#6b716c]"><span className="bg-[#f0e3dc] px-2 py-1 text-[#a25d41]">Claim 01</span><span className="text-[#b4aa9d]">supported by</span><span className="bg-[#eee9df] px-2 py-1">{visibleSources[0]?.file ?? "Awaiting source"}</span><span className="text-[#b4aa9d]">→</span><span className="bg-[#eee9df] px-2 py-1">page {visibleSources[0]?.page ?? "?"}</span><span className="text-[#b4aa9d]">→</span><span className="bg-[#e7efe8] px-2 py-1 text-[#547461]">direct evidence</span></div></div>
-                <div className="mt-6 flex items-center justify-between border-t border-[#d9d1c4] pt-4"><span className="font-mono text-[10px] text-[#91897e]">Generated by z-ai/glm-5.3-flash · 1.8s</span><button onClick={() => toast.info("Answer copied with citation metadata.")} className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#b96845] hover:text-[#1e2625]">Copy with citations</button></div>
+                <div className="mt-6 flex items-center justify-between border-t border-[#d9d1c4] pt-4"><span className="font-mono text-[10px] text-[#91897e]">{modelUsed ? `Generated by ${modelUsed}` : "Model not reported"}</span><button onClick={() => toast.info("Answer copied with citation metadata.")} className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#b96845] hover:text-[#1e2625]">Copy with citations</button></div>
               </article>
             </section>
 

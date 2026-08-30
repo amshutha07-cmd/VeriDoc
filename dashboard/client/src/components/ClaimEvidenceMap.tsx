@@ -14,7 +14,7 @@ export default function ClaimEvidenceMap({ sources }: { sources: EvidenceItem[] 
   const [selected, setSelected] = useState<EvidenceItem | null>(null);
   const claims = useMemo(() => sources.slice(0, 4).map((source, index) => ({
     id: index + 1,
-    text: (source.excerpt || "Evidence-backed finding from the retrieved passage.").split(/[.!?]/)[0].trim() || "Evidence-backed finding from the retrieved passage.",
+    text: (() => { const raw = (source.excerpt || "Evidence-backed finding from the retrieved passage.").replace(/^[\s\d.,;:()\-]+/, ""); const first = raw.split(/[.!?]/)[0].trim(); return first.length >= 12 ? first : (raw.slice(0, 140).trim() || "Evidence-backed finding from the retrieved passage."); })(),
     source,
   })), [sources]);
   const uniqueSources = new Set(sources.map((item) => item.source ?? item.filename ?? "Unknown source")).size;
