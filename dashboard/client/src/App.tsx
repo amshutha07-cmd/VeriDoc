@@ -1,4 +1,4 @@
-﻿/* Evidence Atelier direction: editorial legal-research workbench, ivory paper, ink-black type, oxidized-copper provenance markers, asymmetric persistent rail. */
+/* Evidence Atelier direction: editorial legal-research workbench, ivory paper, ink-black type, oxidized-copper provenance markers, asymmetric persistent rail. */
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
@@ -30,14 +30,10 @@ export default function App() {
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
-          <Toaster position="bottom-right" />
+          <Toaster position="bottom-right" richColors toastOptions={{ classNames: { toast: "!bg-[#1e2625] !text-[#f8f5ef] !border-[#b96845]", description: "!text-[#d9d1c4]" } }} />
           <Router />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
 }
-
-
-
-

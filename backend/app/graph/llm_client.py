@@ -1,4 +1,4 @@
-﻿import os
+import os
 import time
 from typing import Any
 
@@ -7,13 +7,11 @@ from app.core.config import settings
 
 
 DEFAULT_MODELS = [
-    "z-ai/glm-5.3-flash",
     "openai/gpt-4o-mini",
-    "google/gemini-2.5-flash",
+    "z-ai/glm-5.3-flash",
     "openrouter/free",
+    "google/gemini-2.5-flash",
 ]
-
-
 def _model_chain() -> list[str]:
     configured = os.getenv("VERIDOC_MODELS", "")
     models = [item.strip() for item in configured.split(",") if item.strip()]
