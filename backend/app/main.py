@@ -1,18 +1,21 @@
-"""
-FastAPI entrypoint — wires ingest, ask (SSE), and health routes.
-"""
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes_ingest import router as ingest_router
 from app.api.routes_ask import router as ask_router
 from app.api.routes_graph import router as graph_router
 from app.api.routes_eval import router as eval_router
-
 app = FastAPI(title="Self-Correcting RAG API")
+
+allowed_origins = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://localhost:5173"
+).split(",")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # tighten to your Vercel domain once deployed
+    allow_origins=allowed_origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
