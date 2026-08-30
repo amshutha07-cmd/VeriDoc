@@ -26,3 +26,22 @@ def graph_search(req: GraphSearchRequest):
         ],
         "status": "connected" if results else "no_graph_results",
     }
+
+@router.get("/explore")
+def graph_explore():
+    from app.graph_store.graph_handler import VeriDocGraph
+    g = VeriDocGraph(storage_path="data/graph_store.pkl")
+    nodes = [
+        {"id": n, **data}
+        for n, data in g.graph.nodes(data=True)
+    ]
+    edges = [
+        {"from": u, "to": v, **data}
+        for u, v, data in g.graph.edges(data=True)
+    ]
+    return {
+        "node_count": len(nodes),
+        "edge_count": len(edges),
+        "nodes": nodes,
+        "edges": edges,
+    }
