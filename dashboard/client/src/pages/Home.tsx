@@ -33,6 +33,14 @@ const stages = [
   { label: "Generate answer", status: "active", meta: "citation-backed" },
 ];
 
+const NAV_ITEMS = [
+  { Icon: Search, label: "Ask the corpus", href: "/", active: true },
+  { Icon: Database, label: "Corpus registry", href: "/corpus", active: false },
+  { Icon: Network, label: "Knowledge graph", href: "/graph", active: false },
+  { Icon: Clock3, label: "Ingestion jobs", href: "/ingestion", active: false },
+  { Icon: Layers3, label: "Evaluation", href: "/evaluation", active: false },
+];
+
 type EvidenceSource = {
   id: string;
   source?: string;
@@ -44,8 +52,6 @@ type EvidenceSource = {
   color: "copper" | "sage" | "slate";
   excerpt: string;
 };
-
-const sources: EvidenceSource[] = [];
 
 function extractSsePayload(raw: string): any | null {
   let latest: any | null = null;
@@ -71,6 +77,7 @@ function extractSsePayload(raw: string): any | null {
 
   return latest;
 }
+
 function normalizeEvidence(payload: any): EvidenceSource[] {
   const items = payload?.evidence ?? payload?.docs ?? payload?.result?.evidence ?? payload?.result?.docs ?? payload?.data?.evidence ?? payload?.data?.docs ?? [];
   if (!Array.isArray(items)) return [];
@@ -102,12 +109,14 @@ export default function Home() {
   const [answer, setAnswer] = useState("Run a query to generate a grounded answer from the connected corpus.");
   const [isRunning, setIsRunning] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadDomain, setUploadDomain] = useState<"legal" | "corporate">("legal");
   const [liveSources, setLiveSources] = useState<EvidenceSource[]>([]);
-  const [selectedSource, setSelectedSource] = useState<EvidenceSource | null>(null);
   const [sourceFilter, setSourceFilter] = useState("All");
+  const [expandedSourceId, setExpandedSourceId] = useState<string | null>(null);
   const [corpus, setCorpus] = useState<[string, string, string][]>([
     ["Legal chunks", "-", "loading"],
     ["Corporate chunks", "-", "loading"],
@@ -127,9 +136,21 @@ export default function Home() {
       })
       .catch(() => setCorpus([["Legal chunks", "-", "unavailable"], ["Corporate chunks", "-", "unavailable"]]));
   }, []);
-  const visibleSources = useMemo(() => sourceFilter === "All" ? liveSources : liveSources.filter((source) => source.domain === sourceFilter), [sourceFilter, liveSources]);
+
+  const filterOptions = useMemo(() => {
+    const domains = Array.from(new Set(liveSources.map((source) => source.domain).filter(Boolean)));
+    return ["All", ...domains];
+  }, [liveSources]);
+
+  const visibleSources = useMemo(
+    () => (sourceFilter === "All" ? liveSources : liveSources.filter((source) => source.domain === sourceFilter)),
+    [sourceFilter, liveSources]
+  );
 
   const apiLabel = useMemo(() => (import.meta.env.VITE_VERIDOC_API_URL ? "Backend connected" : "Demo workspace"), []);
+
+  const anchoredCount = visibleSources.filter((source) => source.page && source.page !== "p. ?").length;
+  const confidenceLabel = visibleSources.length === 0 ? "—" : `${Math.round((anchoredCount / visibleSources.length) * 100)}%`;
 
   async function askQuestion() {
     if (!question.trim()) return;
@@ -147,16 +168,17 @@ export default function Home() {
         const payload = response.headers.get("content-type")?.includes("text/event-stream")
           ? extractSsePayload(rawBody)
           : (() => {
-              try {
-                return JSON.parse(rawBody);
-              } catch {
-                return null;
-              }
-            })();
+            try {
+              return JSON.parse(rawBody);
+            } catch {
+              return null;
+            }
+          })();
         const remoteAnswer = payload?.answer ?? payload?.response ?? payload?.result?.answer ?? null;
-      setModelUsed(payload?.model ?? null);
+        setModelUsed(payload?.model ?? null);
         setLiveSources(normalizeEvidence(payload));
         setSourceFilter("All");
+        setExpandedSourceId(null);
         if (typeof remoteAnswer === "string" && remoteAnswer.trim()) setAnswer(remoteAnswer);
         toast.success("Evidence packet refreshed", { description: "Live response received from VeriDoc backend." });
       } else {
@@ -218,11 +240,25 @@ export default function Home() {
       });
     }
   }
+
+  async function copyAnswerWithCitations() {
+    const citations = visibleSources
+      .map((source, index) => `[${index + 1}] ${source.file} — ${source.page}`)
+      .join("\n");
+    const text = `${answer}\n\nSources:\n${citations || "No sources available."}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Answer copied with citation metadata.");
+    } catch {
+      toast.error("Could not copy to clipboard.", { description: "Your browser may be blocking clipboard access." });
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#f4f0e8] text-[#1e2625]">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-[238px] border-r border-[#d9d1c4] bg-[#eee9df] lg:flex lg:flex-col">
         <div className="flex items-center gap-3 px-7 py-7">
-            <div className="relative flex h-10 w-10 items-center justify-center bg-[#b96845] shadow-[4px_4px_0_#1e2625]">
+          <div className="relative flex h-10 w-10 items-center justify-center bg-[#b96845] shadow-[4px_4px_0_#1e2625]">
             <img src="/manus-storage/veridoc-nexus-mark_d3a96f75.png" alt="VeriDoc Nexus mark" className="h-8 w-8 object-contain" />
           </div>
           <div>
@@ -234,13 +270,7 @@ export default function Home() {
         <div className="px-4">
           <div className="mb-3 px-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[#9b9388]">Research desk</div>
           <nav className="space-y-1">
-            {[
-              { Icon: Search, label: "Ask the corpus", href: "/", active: true },
-              { Icon: Database, label: "Corpus registry", href: "/corpus", active: false },
-              { Icon: Network, label: "Knowledge graph", href: "/graph", active: false },
-              { Icon: Clock3, label: "Ingestion jobs", href: "/ingestion", active: false },
-              { Icon: Layers3, label: "Evaluation", href: "/evaluation", active: false },
-            ].map(({ Icon, label, href, active }) => (
+            {NAV_ITEMS.map(({ Icon, label, href, active }) => (
               <a key={label} href={href} className={`group flex w-full items-center gap-3 px-3 py-3 text-left text-[13px] transition-colors ${active ? "bg-[#1e2625] text-[#f8f4ec]" : "text-[#716a61] hover:bg-[#e5dfd4] hover:text-[#1e2625]"}`}>
                 <Icon className={`h-4 w-4 ${active ? "text-[#e5a182]" : "text-[#8f887e]"}`} strokeWidth={1.7} />
                 <span>{label}</span>
@@ -257,15 +287,61 @@ export default function Home() {
         </div>
       </aside>
 
+      {mobileNavOpen && (
+        <div className="fixed inset-0 z-40 flex lg:hidden" onClick={() => setMobileNavOpen(false)}>
+          <div className="absolute inset-0 bg-[#1e2625]/40" />
+          <div className="relative z-10 flex h-full w-[268px] flex-col bg-[#eee9df] shadow-[8px_0_0_#1e2625]" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-6">
+              <span className="font-serif text-lg">VeriDoc Nexus</span>
+              <button onClick={() => setMobileNavOpen(false)} className="text-[#716a61]"><X className="h-5 w-5" /></button>
+            </div>
+            <nav className="space-y-1 px-4">
+              {NAV_ITEMS.map(({ Icon, label, href, active }) => (
+                <a key={label} href={href} onClick={() => setMobileNavOpen(false)} className={`group flex w-full items-center gap-3 px-3 py-3 text-left text-[13px] transition-colors ${active ? "bg-[#1e2625] text-[#f8f4ec]" : "text-[#716a61] hover:bg-[#e5dfd4] hover:text-[#1e2625]"}`}>
+                  <Icon className={`h-4 w-4 ${active ? "text-[#e5a182]" : "text-[#8f887e]"}`} strokeWidth={1.7} />
+                  <span>{label}</span>
+                </a>
+              ))}
+            </nav>
+          </div>
+        </div>
+      )}
+
+      {guideOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#1e2625]/35 p-5" onClick={() => setGuideOpen(false)}>
+          <div className="w-full max-w-[520px] border border-[#cfc6b9] bg-[#f8f5ef] p-6 shadow-[10px_10px_0_#1e2625] sm:p-8" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[#b96845]">How VeriDoc works</div>
+                <h2 className="font-serif text-3xl">Evidence-first, by design</h2>
+              </div>
+              <button onClick={() => setGuideOpen(false)} className="text-[#8c857c] hover:text-[#1e2625]"><X className="h-5 w-5" /></button>
+            </div>
+            <ol className="mt-6 space-y-3">
+              {stages.map((stage, index) => (
+                <li key={stage.label} className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-[#bbb1a4] bg-[#f8f5ef] font-mono text-[9px]">{index + 1}</span>
+                  <div>
+                    <div className="text-[13px] font-medium text-[#303a36]">{stage.label}</div>
+                    <div className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#8d867d]">{stage.meta}</div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-6 font-serif text-[15px] leading-relaxed text-[#6a706a]">Every answer is grounded in retrieved passages. If evidence is weak, VeriDoc corrects the search before answering — and refuses rather than inventing facts when nothing supports the claim.</p>
+          </div>
+        </div>
+      )}
+
       <main className="lg:pl-[238px]">
         <header className="flex h-[78px] items-center justify-between border-b border-[#d9d1c4] px-5 sm:px-8 lg:px-12">
           <div className="flex items-center gap-3 lg:hidden"><PanelLeft className="h-5 w-5 text-[#7d766d]" /><span className="font-serif text-lg">VeriDoc Nexus</span></div>
           <div className="hidden items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8b857c] sm:flex"><span className="h-1.5 w-1.5 bg-[#b96845]" /> Research workspace <span className="text-[#c5bdb1]">/</span> Case 004</div>
           <div className="flex items-center gap-3">
             <div className="mr-2 hidden items-center gap-2 md:flex"><img src="/manus-storage/veridoc-nexus-mark_d3a96f75.png" alt="" className="h-7 w-7 object-contain" /><span className="font-serif text-[17px] tracking-[-0.02em]">VeriDoc <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#77736c]">Nexus</span></span></div>
-            <button className="hidden items-center gap-2 border border-[#cec5b8] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-[#6f6a63] transition hover:border-[#1e2625] sm:flex"><CircleHelp className="h-3.5 w-3.5" /> Guide</button>
+            <button onClick={() => setGuideOpen(true)} className="hidden items-center gap-2 border border-[#cec5b8] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-[#6f6a63] transition hover:border-[#1e2625] sm:flex"><CircleHelp className="h-3.5 w-3.5" /> Guide</button>
             <button onClick={() => setUploadOpen(true)} className="flex items-center gap-2 bg-[#b96845] px-4 py-2.5 text-[12px] font-semibold text-white shadow-[3px_3px_0_#1e2625] transition hover:-translate-y-0.5 hover:shadow-[4px_4px_0_#1e2625] active:translate-y-0 active:shadow-[1px_1px_0_#1e2625]"><UploadCloud className="h-4 w-4" /> Add documents</button>
-            <button className="p-2 text-[#716a61] lg:hidden"><Menu className="h-5 w-5" /></button>
+            <button onClick={() => setMobileNavOpen(true)} className="p-2 text-[#716a61] lg:hidden"><Menu className="h-5 w-5" /></button>
           </div>
         </header>
 
@@ -296,16 +372,46 @@ export default function Home() {
 
               <div className="mt-9 mb-4 flex items-end justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8c857c]">02 / Evidence packet</div><h2 className="font-serif text-3xl tracking-tight text-[#1e2625]">A grounded answer</h2></div><div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#547461]"><span className="h-2 w-2 rounded-full bg-[#6e8b78]" /> Supported</div></div>
               <article className="border border-[#cfc6b9] bg-[#fbfaf6] p-5 sm:p-8">
-                <div className="mb-5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#8c857c]"><span className="flex h-5 w-5 items-center justify-center bg-[#b96845] text-[9px] text-white">01</span><span>Claim packet / direct support</span><span className="ml-auto text-[#6e8b78]">verified</span></div><div className="flex items-start justify-between gap-6"><div className="answer-markdown max-w-[690px] font-serif text-[20px] leading-[1.52] text-[#2d3733]"><Streamdown>{answer}</Streamdown></div><div className="hidden border-l border-[#d9d1c4] pl-5 text-right sm:block"><div className="font-mono text-2xl text-[#b96845]">�</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-[#8c857c]">confidence</div></div></div>
-                <div className="hidden"><div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#8c857c]"><GitBranch className="h-3.5 w-3.5 text-[#8c857c]" /> Claim provenance <span className="ml-auto text-[#b96845]">{visibleSources[0] ? `01 | ${visibleSources[0].file} | ${visibleSources[0].page}` : "Awaiting live evidence"}</span></div><div className="flex flex-wrap items-center gap-2 font-mono text-[10px] text-[#6b716c]"><span className="bg-[#f0e3dc] px-2 py-1 text-[#a25d41]">Claim 01</span><span className="text-[#b4aa9d]">supported by</span><span className="bg-[#eee9df] px-2 py-1">{visibleSources[0]?.file ?? "Awaiting source"}</span><span className="text-[#b4aa9d]">→</span><span className="bg-[#eee9df] px-2 py-1">page {visibleSources[0]?.page ?? "?"}</span><span className="text-[#b4aa9d]">→</span><span className="bg-[#e7efe8] px-2 py-1 text-[#547461]">direct evidence</span></div></div>
-                <div className="mt-6 flex items-center justify-between border-t border-[#d9d1c4] pt-4"><span className="font-mono text-[10px] text-[#91897e]">{modelUsed ? `Generated by ${modelUsed}` : "Model not reported"}</span><button onClick={() => toast.info("Answer copied with citation metadata.")} className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#b96845] hover:text-[#1e2625]">Copy with citations</button></div>
+                <div className="mb-5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#8c857c]"><span className="flex h-5 w-5 items-center justify-center bg-[#b96845] text-[9px] text-white">01</span><span>Claim packet / direct support</span><span className="ml-auto text-[#6e8b78]">verified</span></div>
+                <div className="flex items-start justify-between gap-6">
+                  <div className="answer-markdown max-w-[690px] font-serif text-[20px] leading-[1.52] text-[#2d3733]"><Streamdown>{answer}</Streamdown></div>
+                  <div className="hidden border-l border-[#d9d1c4] pl-5 text-right sm:block"><div className="font-mono text-2xl text-[#b96845]">{confidenceLabel}</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-[#8c857c]">evidence anchored</div></div>
+                </div>
+                <div className="mt-6 flex items-center justify-between border-t border-[#d9d1c4] pt-4"><span className="font-mono text-[10px] text-[#91897e]">{modelUsed ? `Generated by ${modelUsed}` : "Model not reported"}</span><button onClick={() => void copyAnswerWithCitations()} className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#b96845] hover:text-[#1e2625]">Copy with citations</button></div>
               </article>
             </section>
 
             <aside className="space-y-8">
-              <ClaimEvidenceMap sources={visibleSources} /><section><div className="mb-4 flex items-end justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8c857c]">03 / Agent trace</div><h2 className="font-serif text-2xl tracking-tight">Reasoning path</h2></div><span className="font-mono text-[10px] text-[#8c857c]">1.8s total</span></div><div className="border border-[#cfc6b9] bg-[#f8f5ef] p-5">{stages.map((stage, index) => <div key={stage.label} className="relative flex gap-3 pb-5 last:pb-0"><div className="relative z-10 flex h-5 w-5 shrink-0 items-center justify-center border border-[#bbb1a4] bg-[#f8f5ef]">{stage.status === "complete" ? <Check className="h-3 w-3 text-[#547461]" /> : <span className="h-2 w-2 animate-pulse bg-[#b96845]" />}</div>{index < stages.length - 1 && <div className="absolute left-[9px] top-5 h-[calc(100%-12px)] w-px bg-[#d6cdc0]" />}<div className="-mt-0.5"><div className="text-[12px] font-medium text-[#303a36]">{stage.label}</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-[#8d867d]">{stage.meta}</div></div></div>)}</div></section>
+              <ClaimEvidenceMap sources={visibleSources} />
+              <section>
+                <div className="mb-4 flex items-end justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8c857c]">03 / Agent trace</div><h2 className="font-serif text-2xl tracking-tight">Reasoning path</h2></div><span className="font-mono text-[10px] text-[#8c857c]">1.8s total</span></div>
+                <div className="border border-[#cfc6b9] bg-[#f8f5ef] p-5">{stages.map((stage, index) => <div key={stage.label} className="relative flex gap-3 pb-5 last:pb-0"><div className="relative z-10 flex h-5 w-5 shrink-0 items-center justify-center border border-[#bbb1a4] bg-[#f8f5ef]">{stage.status === "complete" ? <Check className="h-3 w-3 text-[#547461]" /> : <span className="h-2 w-2 animate-pulse bg-[#b96845]" />}</div>{index < stages.length - 1 && <div className="absolute left-[9px] top-5 h-[calc(100%-12px)] w-px bg-[#d6cdc0]" />}<div className="-mt-0.5"><div className="text-[12px] font-medium text-[#303a36]">{stage.label}</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-[#8d867d]">{stage.meta}</div></div></div>)}</div>
+              </section>
 
-              <section><div className="mb-4 flex items-end justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8c857c]">04 / Source passages</div><h2 className="font-serif text-2xl tracking-tight">Proof, in context</h2></div><div className="flex items-center gap-2">{["All", "Acts", "Constitution"].map((filter) => <button key={filter} onClick={() => setSourceFilter(filter)} className={`font-mono text-[9px] uppercase tracking-[0.1em] ${sourceFilter === filter ? "text-[#b96845]" : "text-[#9a9186]"}`}>{filter}</button>)}</div></div><div className="space-y-2">{visibleSources.map((source) => <button key={source.id} onClick={() => toast.info(`${source.file} · ${source.page}`, { description: source.title })} className="source-card group w-full border border-[#d9d1c4] text-[#3b4540] bg-[#f8f5ef] p-4 text-left transition hover:-translate-y-0.5 hover:border-[#b96845] hover:shadow-[3px_3px_0_#dec7b8]"><div className="flex items-start gap-3"><span className={`font-mono text-[10px] ${source.color === "copper" ? "text-[#b96845]" : source.color === "sage" ? "text-[#547461]" : "text-[#65716e]"}`}>{source.id}</span><div className="min-w-0 flex-1"><div className="text-[12px] leading-snug text-[#3b4540]">{source.title}</div><div className="mt-2 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.08em] text-[#958d83]"><span>{source.file}</span><span>·</span><span>{source.page}</span><span className="ml-auto text-[#6e8b78]">{source.tag}</span></div></div><ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-[#b1a89d] transition group-hover:text-[#b96845]" /></div></button>)}</div></section>
+              <section>
+                <div className="mb-4 flex items-end justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8c857c]">04 / Source passages</div><h2 className="font-serif text-2xl tracking-tight">Proof, in context</h2></div><div className="flex flex-wrap items-center gap-2">{filterOptions.map((filter) => <button key={filter} onClick={() => setSourceFilter(filter)} className={`font-mono text-[9px] uppercase tracking-[0.1em] ${sourceFilter === filter ? "text-[#b96845]" : "text-[#9a9186]"}`}>{filter}</button>)}</div></div>
+                <div className="space-y-2">
+                  {visibleSources.length === 0 && <p className="font-serif text-sm text-[#8c857c]">No source passages yet — run a query to populate this list.</p>}
+                  {visibleSources.map((source) => {
+                    const isExpanded = expandedSourceId === source.id;
+                    return (
+                      <div key={source.id} className="source-card border border-[#d9d1c4] bg-[#f8f5ef] transition hover:border-[#b96845]">
+                        <button onClick={() => setExpandedSourceId(isExpanded ? null : source.id)} className="group w-full p-4 text-left text-[#3b4540]">
+                          <div className="flex items-start gap-3">
+                            <span className={`font-mono text-[10px] ${source.color === "copper" ? "text-[#b96845]" : source.color === "sage" ? "text-[#547461]" : "text-[#65716e]"}`}>{source.id}</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-[12px] leading-snug text-[#3b4540]">{source.title}</div>
+                              <div className="mt-2 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.08em] text-[#958d83]"><span>{source.file}</span><span>·</span><span>{source.page}</span><span className="ml-auto text-[#6e8b78]">{source.tag}</span></div>
+                            </div>
+                            <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-[#b1a89d] transition group-hover:text-[#b96845] ${isExpanded ? "rotate-180" : ""}`} />
+                          </div>
+                        </button>
+                        {isExpanded && <div className="border-t border-[#e5ded4] px-4 py-3 font-serif text-[13px] leading-relaxed text-[#4c514d]">{source.excerpt}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
 
               <section className="border-t border-[#d9d1c4] pt-6"><div className="mb-3 flex items-center justify-between"><div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8c857c]">Recent ingestion</div><Clock3 className="h-3.5 w-3.5 text-[#b96845]" /></div><div className="flex items-center justify-between py-2"><div className="flex items-center gap-2"><BookOpen className="h-4 w-4 text-[#8e877e]" /><span className="text-[12px]">Central Acts seed set</span></div><span className="font-mono text-[10px] text-[#6e8b78]">ready</span></div>{uploadedFiles.map((name) => <div key={name} className="flex items-center justify-between border-t border-[#e5ded4] py-2"><div className="flex min-w-0 items-center gap-2"><FileUp className="h-4 w-4 shrink-0 text-[#b96845]" /><span className="truncate text-[12px]">{name}</span></div><span className="font-mono text-[10px] text-[#b96845]">queued</span></div>)}<button onClick={() => setUploadOpen(true)} className="mt-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#b96845] hover:text-[#1e2625]"><Plus className="h-3.5 w-3.5" /> Queue a source</button></section>
             </aside>
@@ -317,15 +423,3 @@ export default function Home() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
