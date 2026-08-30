@@ -4,6 +4,7 @@ from langchain_chroma import Chroma
 from app.core.state import RAGState
 from app.core.config import settings
 from app.ingestion.embedder import get_embeddings, get_corporate_embeddings
+from app.graph.source_filter import filter_legal_sources
 
 LEGAL_COLLECTION = "veridoc_legal"
 
@@ -62,6 +63,8 @@ def retrieve(state: RAGState) -> dict:
     if not is_legal:
         return {"docs": vector_docs, "query": query}
 
+    vector_docs = filter_legal_sources(query, vector_docs)
+
     graph_docs = _graph_documents(state)
     graph_sources = {
         doc.metadata.get("source")
@@ -93,3 +96,4 @@ def retrieve(state: RAGState) -> dict:
 
     print(f"retrieval_domain=indian_law graph_docs={len(graph_docs)} vector_docs={len(vector_docs)} merged={len(merged)}")
     return {"docs": merged, "query": query}
+

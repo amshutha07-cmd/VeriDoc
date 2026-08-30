@@ -106,6 +106,7 @@ export default function Home() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  const [uploadDomain, setUploadDomain] = useState<"legal" | "corporate">("legal");
   const [liveSources, setLiveSources] = useState<EvidenceSource[]>([]);
   const [selectedSource, setSelectedSource] = useState<EvidenceSource | null>(null);
   const [sourceFilter, setSourceFilter] = useState("All");
@@ -171,6 +172,7 @@ export default function Home() {
     }
 
     const formData = new FormData();
+    formData.append("domain", uploadDomain);
     selected.forEach((file) => formData.append("files", file));
 
     try {
@@ -293,10 +295,11 @@ export default function Home() {
         </div>
       </main>
 
-      {uploadOpen && <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#1e2625]/35 p-5" onClick={() => setUploadOpen(false)}><div className="w-full max-w-[560px] border border-[#cfc6b9] bg-[#f8f5ef] p-6 shadow-[10px_10px_0_#1e2625] sm:p-8" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[#b96845]">Ingestion dossier</div><h2 className="font-serif text-3xl">Add source documents</h2><p className="mt-2 max-w-[390px] font-serif text-[15px] leading-relaxed text-[#6a706a]">Queue Acts, Rules, amendments, or judgments. The backend will hash, extract, and index them without rebuilding the corpus.</p></div><button onClick={() => setUploadOpen(false)} className="text-[#8c857c] hover:text-[#1e2625]"><X className="h-5 w-5" /></button></div><label className="mt-7 flex cursor-pointer flex-col items-center justify-center border border-dashed border-[#b9aea0] bg-[#f2eee7] px-5 py-10 text-center transition hover:border-[#b96845] hover:bg-[#f0e7df]"><input type="file" accept="application/pdf,.docx" multiple className="sr-only" onChange={(event) => { handleFiles(event.target.files); setUploadOpen(false); }} /><FileUp className="h-8 w-8 text-[#b96845]" /><span className="mt-3 text-[13px] font-medium">Drop PDFs or DOCX files here</span><span className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[#958d83]">PDF Â· DOCX Â· multiple files supported</span></label><div className="mt-5 flex items-center gap-2 font-mono text-[10px] text-[#8c857c]"><ShieldCheck className="h-3.5 w-3.5 text-[#6e8b78]" /> SHA-256 provenance is preserved at ingestion</div></div></div>}
+      {uploadOpen && <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#1e2625]/35 p-5" onClick={() => setUploadOpen(false)}><div className="w-full max-w-[560px] border border-[#cfc6b9] bg-[#f8f5ef] p-6 shadow-[10px_10px_0_#1e2625] sm:p-8" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[#b96845]">Ingestion dossier</div><h2 className="font-serif text-3xl">Add source documents</h2><p className="mt-2 max-w-[390px] font-serif text-[15px] leading-relaxed text-[#6a706a]">Queue Acts, Rules, amendments, or judgments. The backend will hash, extract, and index them without rebuilding the corpus.</p></div><button onClick={() => setUploadOpen(false)} className="text-[#8c857c] hover:text-[#1e2625]"><X className="h-5 w-5" /></button></div><select value={uploadDomain} onChange={(event) => setUploadDomain(event.target.value as "legal" | "corporate")} className="mt-7 w-full border border-[#b9aea0] bg-[#f2eee7] px-3 py-3 text-[12px] text-[#3b4540]"><option value="legal">Indian law collection</option><option value="corporate">Corporate / handbook collection</option></select><label className="mt-7 flex cursor-pointer flex-col items-center justify-center border border-dashed border-[#b9aea0] bg-[#f2eee7] px-5 py-10 text-center transition hover:border-[#b96845] hover:bg-[#f0e7df]"><input type="file" accept="application/pdf,.docx" multiple className="sr-only" onChange={(event) => { handleFiles(event.target.files); setUploadOpen(false); }} /><FileUp className="h-8 w-8 text-[#b96845]" /><span className="mt-3 text-[13px] font-medium">Drop PDFs or DOCX files here</span><span className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[#958d83]">PDF Â· DOCX Â· multiple files supported</span></label><div className="mt-5 flex items-center gap-2 font-mono text-[10px] text-[#8c857c]"><ShieldCheck className="h-3.5 w-3.5 text-[#6e8b78]" /> SHA-256 provenance is preserved at ingestion</div></div></div>}
     </div>
   );
 }
+
 
 
 
