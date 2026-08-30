@@ -1,10 +1,10 @@
-﻿"""Domain-aware hybrid retrieval for corporate and Indian-law corpora."""
+"""Domain-aware hybrid retrieval for corporate and Indian-law corpora."""
 from langchain_core.documents import Document
 from langchain_chroma import Chroma
 from app.core.state import RAGState
 from app.core.config import settings
-from app.ingestion.embedder import get_embeddings, get_corporate_embeddings
 from app.graph.source_filter import filter_legal_sources
+from app.ingestion.embedder import get_embeddings, get_corporate_embeddings
 
 LEGAL_COLLECTION = "veridoc_legal"
 
@@ -60,10 +60,12 @@ def retrieve(state: RAGState) -> dict:
     retriever = _legal_retriever if is_legal else _corporate_retriever
     vector_docs = retriever.invoke(query)
 
+    if is_legal:
+        vector_docs = filter_legal_sources(query, vector_docs)
+
     if not is_legal:
         return {"docs": vector_docs, "query": query}
 
-    vector_docs = filter_legal_sources(query, vector_docs)
 
     graph_docs = _graph_documents(state)
     graph_sources = {
@@ -96,4 +98,3 @@ def retrieve(state: RAGState) -> dict:
 
     print(f"retrieval_domain=indian_law graph_docs={len(graph_docs)} vector_docs={len(vector_docs)} merged={len(merged)}")
     return {"docs": merged, "query": query}
-
