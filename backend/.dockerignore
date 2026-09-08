@@ -1,0 +1,7 @@
+﻿venv/
+__pycache__/
+*.pyc
+.env
+chroma_db_hf/
+chroma_db_gemini_backup_20260825_174802/
+.git/

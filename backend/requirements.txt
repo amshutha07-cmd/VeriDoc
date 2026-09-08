@@ -15,3 +15,5 @@ chromadb
 pydantic-settings
 sentence-transformers
 requests
+sse-starlette==3.4.8
+python-multipart
