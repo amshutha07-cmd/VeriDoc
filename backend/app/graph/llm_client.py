@@ -79,7 +79,7 @@ class FallbackChatModel:
 
             except Exception as error:
                 failures.append(f"{model}: {type(error).__name__}: {error}")
-                print(f"LLM fallback: {model} failed; trying next model")
+                print(f"LLM fallback: {model} failed: {type(error).__name__}: {error}")
 
                 # A 401 almost always means the key is invalid. Trying other
                 # models would repeat the same authentication failure.

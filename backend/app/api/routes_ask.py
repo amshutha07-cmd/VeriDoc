@@ -2,7 +2,8 @@
 POST /ask - streams the graph's node-by-node execution as Server-Sent Events.
 """
 import json
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+from app.limiter import limiter
 from sse_starlette.sse import EventSourceResponse
 from pydantic import BaseModel
 from app.graph.build_graph import graph
@@ -36,7 +37,8 @@ def _blank_state(question: str) -> dict:
 
 
 @router.post("/ask")
-async def ask(req: AskRequest):
+@limiter.limit("10/minute")
+async def ask(request: Request, req: AskRequest):
     cfg = {"configurable": {"thread_id": req.thread_id}}
 
     async def event_generator():
@@ -115,7 +117,8 @@ def _json_evidence(documents: list) -> list[dict]:
 
 
 @router.post("/ask/json")
-async def ask_json(req: AskRequest):
+@limiter.limit("10/minute")
+async def ask_json(request: Request, req: AskRequest):
     cfg = {"configurable": {"thread_id": req.thread_id}}
     try:
         final_state = graph.invoke(_blank_state(req.question), cfg)

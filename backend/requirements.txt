@@ -1,4 +1,4 @@
-﻿--extra-index-url https://download.pytorch.org/whl/cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch
 pypdf
 python-docx
@@ -17,3 +17,4 @@ sentence-transformers
 requests
 sse-starlette==3.4.8
 python-multipart
+slowapi==0.1.10

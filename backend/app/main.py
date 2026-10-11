@@ -1,11 +1,18 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+from app.limiter import limiter
+from slowapi.middleware import SlowAPIMiddleware
 from app.api.routes_ingest import router as ingest_router
 from app.api.routes_ask import router as ask_router
 from app.api.routes_graph import router as graph_router
 from app.api.routes_eval import router as eval_router
 app = FastAPI(title="Self-Correcting RAG API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 allowed_origins = os.getenv(
     "ALLOWED_ORIGINS",
