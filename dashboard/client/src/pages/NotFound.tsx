@@ -1,49 +1,19 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle, Home } from "lucide-react";
-import { useLocation } from "wouter";
+import { Link } from "wouter";
 
 export default function NotFound() {
-  const [, setLocation] = useLocation();
-
-  const handleGoHome = () => {
-    setLocation("/");
-  };
-
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-      <Card className="w-full max-w-lg mx-4 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-        <CardContent className="pt-8 pb-8 text-center">
-          <div className="flex justify-center mb-6">
-            <div className="relative">
-              <div className="absolute inset-0 bg-red-100 rounded-full animate-pulse" />
-              <AlertCircle className="relative h-16 w-16 text-red-500" />
-            </div>
-          </div>
-
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">404</h1>
-
-          <h2 className="text-xl font-semibold text-slate-700 mb-4">
-            Page Not Found
-          </h2>
-
-          <p className="text-slate-600 mb-8 leading-relaxed">
-            Sorry, the page you are looking for doesn't exist.
-            <br />
-            It may have been moved or deleted.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button
-              onClick={handleGoHome}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Go Home
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="bg-cobalt px-5 py-8 text-white sm:px-9 sm:py-10">
+      <div className="font-mono text-[12px] uppercase tracking-[0.12em]">Page not found</div>
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-8">
+        <div className="text-[clamp(6rem,22vw,12rem)] font-black leading-[0.82] tracking-[-0.05em]">404</div>
+        <div className="pb-1">
+          <h1 className="text-[clamp(1.6rem,4vw,2rem)] font-extrabold leading-tight tracking-[-0.02em]">No passage supports this page.</h1>
+          <p className="mt-2 text-[15px] leading-snug">The address you opened is not in the workspace.</p>
+        </div>
+      </div>
+      <Link href="/" className="mt-7 inline-flex h-11 items-center bg-lime px-6 text-[14px] font-extrabold uppercase tracking-[0.04em] text-lime-ink hover:bg-[#e2ff6e]">
+        Back to Ask the corpus
+      </Link>
     </div>
   );
 }

@@ -1,9 +1,11 @@
-/* Evidence Atelier direction: editorial legal-research workbench, ivory paper, ink-black type, oxidized-copper provenance markers, asymmetric persistent rail. */
+/* VeriDoc Nexus: one shell (header, upload and guide dialogs) around five pages. */
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
+import AppShell from "./components/AppShell";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { UploadProvider } from "./contexts/UploadContext";
 import Home from "./pages/Home";
 import CorpusRegistry from "./pages/CorpusRegistry";
 import KnowledgeGraph from "./pages/KnowledgeGraph";
@@ -28,10 +30,24 @@ function Router() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="light">
+      <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
-          <Toaster position="bottom-right" richColors toastOptions={{ classNames: { toast: "!bg-[#1e2625] !text-[#f8f5ef] !border-[#b96845]", description: "!text-[#d9d1c4]" } }} />
-          <Router />
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              classNames: {
+                toast: "!rounded-none !border !border-edge !bg-panel !text-fg",
+                description: "!text-mute",
+                success: "!border-lime",
+                error: "!border-coral",
+              },
+            }}
+          />
+          <UploadProvider>
+            <AppShell>
+              <Router />
+            </AppShell>
+          </UploadProvider>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

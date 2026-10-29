@@ -1,250 +1,122 @@
-/* Evidence Atelier direction: the dashboard is an evidence desk, not a generic SaaS grid. Copper marks provenance; mono labels expose system state. */
-import { useMemo, useState, useEffect } from "react";
+/* Ask the corpus. A cobalt answer block, the claims with their sources, and the source page open beside them.
+   Backend contract is unchanged: POST {API}/ask/json with { question }, answer in `answer`, passages in `evidence` or `docs`. */
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import ClaimEvidenceMap from "../components/ClaimEvidenceMap";
 import { Streamdown } from "streamdown";
+import { ArrowUpRight, X } from "lucide-react";
+import EvidenceList from "@/components/EvidenceList";
+import SourceReader from "@/components/SourceReader";
+import { API_BASE, HAS_BACKEND, errorDetail, formatCount } from "@/lib/api";
 import {
-  ArrowUpRight,
-  BookOpen,
-  Check,
-  ChevronDown,
-  CircleHelp,
-  Clock3,
-  Database,
-  FileUp,
-  GitBranch,
-  Layers3,
-  Menu,
-  Network,
-  PanelLeft,
-  Plus,
-  Search,
-  ShieldCheck,
-  Sparkles,
-  UploadCloud,
-  X,
-} from "lucide-react";
+  SAMPLE_ANSWER,
+  SAMPLE_QUESTION,
+  SAMPLE_SOURCES,
+  extractSsePayload,
+  hasPage,
+  normalizeEvidence,
+  type EvidenceSource,
+} from "@/lib/evidence";
+import { useIngestStats } from "@/lib/useIngestStats";
 
-const stages = [
-  { label: "Route query", status: "complete", meta: "domain-aware" },
-  { label: "Retrieve passages", status: "complete", meta: "response-bound" },
-  { label: "Rerank candidates", status: "complete", meta: "precision layer" },
-  { label: "Grade evidence", status: "complete", meta: "support check" },
-  { label: "Generate answer", status: "active", meta: "citation-backed" },
+type Phase = "idle" | "running" | "done" | "error";
+type RunMeta = { retries?: number; grade?: string; seconds?: number; sample?: boolean };
+
+const EXAMPLES = [
+  "Does Article 21 protect the right to privacy?",
+  "What does the Forest Rights Act say about community rights?",
+  "Who can amend the Constitution, and how?",
 ];
-
-const NAV_ITEMS = [
-  { Icon: Search, label: "Ask the corpus", href: "/", active: true },
-  { Icon: Database, label: "Corpus registry", href: "/corpus", active: false },
-  { Icon: Network, label: "Knowledge graph", href: "/graph", active: false },
-  { Icon: Clock3, label: "Ingestion jobs", href: "/ingestion", active: false },
-  { Icon: Layers3, label: "Evaluation", href: "/evaluation", active: false },
-];
-
-type EvidenceSource = {
-  id: string;
-  source?: string;
-  domain: string;
-  title: string;
-  file: string;
-  page: string;
-  tag: string;
-  color: "copper" | "sage" | "slate";
-  excerpt: string;
-};
-
-function extractSsePayload(raw: string): any | null {
-  let latest: any | null = null;
-
-  for (const event of raw.split(/\n\s*\n/)) {
-    const dataLine = event.split("\n").find((line) => line.startsWith("data:"));
-    if (!dataLine) continue;
-
-    try {
-      const payload = JSON.parse(dataLine.slice(5).trim());
-      const answer = payload?.answer ?? payload?.result?.answer ?? payload?.response;
-      const evidence = payload?.evidence ?? payload?.result?.evidence ?? payload?.data?.evidence;
-
-      if (typeof answer === "string" && answer.trim()) {
-        latest = { ...(latest ?? {}), ...payload };
-      } else if (Array.isArray(evidence)) {
-        latest = { ...(latest ?? {}), evidence };
-      }
-    } catch {
-      // Ignore non-JSON keep-alive/event lines.
-    }
-  }
-
-  return latest;
-}
-
-function normalizeEvidence(payload: any): EvidenceSource[] {
-  const items = payload?.evidence ?? payload?.docs ?? payload?.result?.evidence ?? payload?.result?.docs ?? payload?.data?.evidence ?? payload?.data?.docs ?? [];
-  if (!Array.isArray(items)) return [];
-
-  return items.map((item: any, index: number) => {
-    const metadata = item?.metadata ?? item ?? {};
-    const file = String(metadata.source ?? metadata.file ?? "source");
-    const rawPage = String(metadata.page_label ?? metadata.page ?? "?");
-    const page = rawPage.toLowerCase().startsWith("p") ? rawPage : `p. ${rawPage}`;
-    const category = String(metadata.category ?? metadata.document_type ?? "Evidence");
-    const color = index % 3 === 0 ? "copper" : index % 3 === 1 ? "sage" : "slate";
-
-    return {
-      id: String(index + 1).padStart(2, "0"),
-      domain: category,
-      title: String(metadata.title ?? metadata.document_title ?? file),
-      file,
-      page,
-      tag: String(item?.tag ?? item?.support ?? "Evidence"),
-      source: file,
-      excerpt: String(item?.excerpt ?? item?.page_content ?? metadata.excerpt ?? "No excerpt returned."),
-      color,
-    };
-  });
-}
 
 export default function Home() {
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("Run a query to generate a grounded answer from the connected corpus.");
-  const [isRunning, setIsRunning] = useState(false);
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
-  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
-  const [uploadDomain, setUploadDomain] = useState<"legal" | "corporate">("legal");
+  const [askedQuestion, setAskedQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [liveSources, setLiveSources] = useState<EvidenceSource[]>([]);
   const [sourceFilter, setSourceFilter] = useState("All");
-  const [expandedSourceId, setExpandedSourceId] = useState<string | null>(null);
-  const [corpus, setCorpus] = useState<[string, string, string][]>([
-    ["Legal chunks", "-", "loading"],
-    ["Corporate chunks", "-", "loading"],
-  ]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modelUsed, setModelUsed] = useState<string | null>(null);
-
-  useEffect(() => {
-    const apiBase = import.meta.env.VITE_VERIDOC_API_URL as string | undefined;
-    if (!apiBase) { setCorpus([["Legal chunks", "-", "no backend"], ["Corporate chunks", "-", "no backend"]]); return; }
-    fetch(`${apiBase}/ingest/stats`)
-      .then((res) => res.json())
-      .then((data) => {
-        setCorpus([
-          ["Legal chunks", String(data?.legal_chunks ?? "-"), "indexed"],
-          ["Corporate chunks", String(data?.handbook_chunks ?? "-"), "indexed"],
-        ]);
-      })
-      .catch(() => setCorpus([["Legal chunks", "-", "unavailable"], ["Corporate chunks", "-", "unavailable"]]));
-  }, []);
-
-  const filterOptions = useMemo(() => {
-    const domains = Array.from(new Set(liveSources.map((source) => source.domain).filter(Boolean)));
-    return ["All", ...domains];
-  }, [liveSources]);
+  const [meta, setMeta] = useState<RunMeta>({});
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { status: statsStatus, legalChunks, corporateChunks } = useIngestStats();
 
   const visibleSources = useMemo(
     () => (sourceFilter === "All" ? liveSources : liveSources.filter((source) => source.domain === sourceFilter)),
     [sourceFilter, liveSources]
   );
 
-  const apiLabel = useMemo(() => (import.meta.env.VITE_VERIDOC_API_URL ? "Backend connected" : "Demo workspace"), []);
-
-  const anchoredCount = visibleSources.filter((source) => source.page && source.page !== "p. ?").length;
-  const confidenceLabel = visibleSources.length === 0 ? "-" : `${Math.round((anchoredCount / visibleSources.length) * 100)}%`;
+  const anchoredCount = visibleSources.filter(hasPage).length;
+  const finished = phase === "done" || phase === "error";
+  const withheld = phase === "done" && (liveSources.length === 0 || !answer.trim());
+  const fullyAnchored = visibleSources.length > 0 && anchoredCount === visibleSources.length;
 
   async function askQuestion() {
-    if (!question.trim()) return;
-    setIsRunning(true);
-    const apiBase = import.meta.env.VITE_VERIDOC_API_URL as string | undefined;
+    const asked = question.trim();
+    if (!asked || phase === "running") return;
+    setPhase("running");
+    setErrorMessage(null);
+    const started = performance.now();
+
     try {
-      if (apiBase) {
-        const response = await fetch(`${apiBase.replace(/\/$/, "")}/ask/json`, {
+      if (API_BASE) {
+        const response = await fetch(`${API_BASE}/ask/json`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question }),
+          body: JSON.stringify({ question: asked }),
         });
-        if (!response.ok) throw new Error(`Backend returned ${response.status}`);
+        if (response.status === 429) throw new Error("Too many questions in a minute. Wait a moment and ask again.");
+        if (!response.ok) throw new Error(await errorDetail(response));
+
         const rawBody = await response.text();
         const payload = response.headers.get("content-type")?.includes("text/event-stream")
           ? extractSsePayload(rawBody)
           : (() => {
-            try {
-              return JSON.parse(rawBody);
-            } catch {
-              return null;
-            }
-          })();
-        const remoteAnswer = payload?.answer ?? payload?.response ?? payload?.result?.answer ?? null;
-        setModelUsed(payload?.model ?? null);
-        setLiveSources(normalizeEvidence(payload));
+              try {
+                return JSON.parse(rawBody);
+              } catch {
+                return null;
+              }
+            })();
+        if (!payload) throw new Error("The backend sent a response this workspace could not read.");
+        if (payload.error) throw new Error(String(payload.error));
+
+        const remoteAnswer = payload?.answer ?? payload?.response ?? payload?.result?.answer ?? "";
+        const sources = normalizeEvidence(payload);
+        setAskedQuestion(asked);
+        setAnswer(typeof remoteAnswer === "string" ? remoteAnswer : "");
+        setModelUsed(payload?.model || null);
+        setLiveSources(sources);
         setSourceFilter("All");
-        setExpandedSourceId(null);
-        if (typeof remoteAnswer === "string" && remoteAnswer.trim()) setAnswer(remoteAnswer);
+        setSelectedId(sources[0]?.id ?? null);
+        setMeta({
+          retries: typeof payload.retries === "number" ? payload.retries : undefined,
+          grade: typeof payload.grade === "string" && payload.grade ? payload.grade : undefined,
+          seconds: (performance.now() - started) / 1000,
+        });
         toast.success("Evidence packet refreshed", { description: "Live response received from VeriDoc backend." });
       } else {
         await new Promise((resolve) => window.setTimeout(resolve, 850));
+        setAskedQuestion(SAMPLE_QUESTION);
+        setAnswer(SAMPLE_ANSWER);
+        setModelUsed(null);
+        setLiveSources(SAMPLE_SOURCES);
+        setSourceFilter("All");
+        setSelectedId(SAMPLE_SOURCES[0].id);
+        setMeta({ sample: true });
         toast.success("Evidence packet refreshed", { description: "Demo response · add VITE_VERIDOC_API_URL for live backend calls." });
       }
+      setPhase("done");
     } catch (error) {
-      toast.error("Backend request failed", { description: error instanceof Error ? error.message : "Check the API URL and CORS settings." });
-    } finally {
-      setIsRunning(false);
-    }
-  }
-
-  async function handleFiles(files: FileList | null) {
-    if (!files?.length) return;
-
-    const apiBase = import.meta.env.VITE_VERIDOC_API_URL as string | undefined;
-    const selected = Array.from(files);
-    const names = selected.map((file) => file.name);
-    setUploadedFiles((current) => Array.from(new Set([...current, ...names])));
-    setUploadProgress((current) => ({
-      ...current,
-      ...Object.fromEntries(names.map((name) => [name, 0])),
-    }));
-
-    if (!apiBase) {
-      toast.error("Backend URL is not configured", {
-        description: "Set VITE_VERIDOC_API_URL before uploading documents.",
-      });
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("domain", uploadDomain);
-    selected.forEach((file) => formData.append("files", file));
-
-    try {
-      const response = await fetch(`${apiBase.replace(/\/$/, "")}/ingest`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!response.ok) throw new Error(`Backend returned ${response.status}`);
-
-      const result = await response.json();
-      setUploadProgress((current) => ({
-        ...current,
-        ...Object.fromEntries(names.map((name) => [name, 100])),
-      }));
-      toast.success("Documents indexed", {
-        description: `${result.pages ?? 0} pages and ${result.chunks ?? 0} chunks added to VeriDoc.`,
-      });
-    } catch (error) {
-      setUploadProgress((current) => ({
-        ...current,
-        ...Object.fromEntries(names.map((name) => [name, -1])),
-      }));
-      toast.error("Document ingestion failed", {
-        description: error instanceof Error ? error.message : "Check the backend logs.",
-      });
+      const message = error instanceof Error ? error.message : "Check the API URL and CORS settings.";
+      setErrorMessage(message);
+      setPhase("error");
+      toast.error("Backend request failed", { description: message });
     }
   }
 
   async function copyAnswerWithCitations() {
-    const citations = visibleSources
-      .map((source, index) => `[${index + 1}] ${source.file} - ${source.page}`)
-      .join("\n");
+    const citations = visibleSources.map((source, index) => `[${index + 1}] ${source.file} - ${source.page}`).join("\n");
     const text = `${answer}\n\nSources:\n${citations || "No sources available."}`;
     try {
       await navigator.clipboard.writeText(text);
@@ -254,171 +126,203 @@ export default function Home() {
     }
   }
 
+  const bigStat = `${anchoredCount} of ${visibleSources.length}`;
+
   return (
-    <div className="min-h-screen bg-[#f4f0e8] text-[#1e2625]">
-      <aside className="fixed inset-y-0 left-0 z-20 hidden w-[238px] border-r border-[#d9d1c4] bg-[#eee9df] lg:flex lg:flex-col">
-        <div className="flex items-center gap-3 px-7 py-7">
-          <div className="relative flex h-10 w-10 items-center justify-center bg-[#b96845] shadow-[4px_4px_0_#1e2625]">
-            <img src="/veridoc-nexus-mark.svg" alt="VeriDoc Nexus mark" className="h-8 w-8 object-contain" />
-          </div>
-          <div>
-            <div className="font-serif text-[18px] leading-none tracking-tight">VeriDoc</div>
-            <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.22em] text-[#7d766d]">Nexus / workspace</div>
-          </div>
-        </div>
-
-        <div className="px-4">
-          <div className="mb-3 px-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[#9b9388]">Research desk</div>
-          <nav className="space-y-1">
-            {NAV_ITEMS.map(({ Icon, label, href, active }) => (
-              <a key={label} href={href} className={`group flex w-full items-center gap-3 px-3 py-3 text-left text-[13px] transition-colors ${active ? "bg-[#1e2625] text-[#f8f4ec]" : "text-[#716a61] hover:bg-[#e5dfd4] hover:text-[#1e2625]"}`}>
-                <Icon className={`h-4 w-4 ${active ? "text-[#e5a182]" : "text-[#8f887e]"}`} strokeWidth={1.7} />
-                <span>{label}</span>
-                {active && <span className="ml-auto h-1.5 w-1.5 bg-[#b96845]" />}
-              </a>
-            ))}
-          </nav>
-        </div>
-
-        <div className="mt-auto border-t border-[#d9d1c4] p-5">
-          <div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.15em] text-[#7d766d]"><ShieldCheck className="h-3.5 w-3.5 text-[#6e8b78]" /> Provenance mode</div>
-          <p className="font-serif text-[14px] leading-snug text-[#4c514d]">Every claim is anchored to a source passage before it reaches the answer.</p>
-          <div className="mt-4 flex items-center gap-2 font-mono text-[10px] text-[#8b857c]"><span className="h-2 w-2 rounded-full bg-[#6e8b78]" /> {apiLabel}</div>
-        </div>
-      </aside>
-
-      {mobileNavOpen && (
-        <div className="fixed inset-0 z-40 flex lg:hidden" onClick={() => setMobileNavOpen(false)}>
-          <div className="absolute inset-0 bg-[#1e2625]/40" />
-          <div className="relative z-10 flex h-full w-[268px] flex-col bg-[#eee9df] shadow-[8px_0_0_#1e2625]" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-6">
-              <span className="font-serif text-lg">VeriDoc Nexus</span>
-              <button onClick={() => setMobileNavOpen(false)} className="text-[#716a61]"><X className="h-5 w-5" /></button>
-            </div>
-            <nav className="space-y-1 px-4">
-              {NAV_ITEMS.map(({ Icon, label, href, active }) => (
-                <a key={label} href={href} onClick={() => setMobileNavOpen(false)} className={`group flex w-full items-center gap-3 px-3 py-3 text-left text-[13px] transition-colors ${active ? "bg-[#1e2625] text-[#f8f4ec]" : "text-[#716a61] hover:bg-[#e5dfd4] hover:text-[#1e2625]"}`}>
-                  <Icon className={`h-4 w-4 ${active ? "text-[#e5a182]" : "text-[#8f887e]"}`} strokeWidth={1.7} />
-                  <span>{label}</span>
-                </a>
-              ))}
-            </nav>
-          </div>
-        </div>
-      )}
-
-      {guideOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#1e2625]/35 p-5" onClick={() => setGuideOpen(false)}>
-          <div className="w-full max-w-[520px] border border-[#cfc6b9] bg-[#f8f5ef] p-6 shadow-[10px_10px_0_#1e2625] sm:p-8" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[#b96845]">How VeriDoc works</div>
-                <h2 className="font-serif text-3xl">Evidence-first, by design</h2>
-              </div>
-              <button onClick={() => setGuideOpen(false)} className="text-[#8c857c] hover:text-[#1e2625]"><X className="h-5 w-5" /></button>
-            </div>
-            <ol className="mt-6 space-y-3">
-              {stages.map((stage, index) => (
-                <li key={stage.label} className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-[#bbb1a4] bg-[#f8f5ef] font-mono text-[9px]">{index + 1}</span>
-                  <div>
-                    <div className="text-[13px] font-medium text-[#303a36]">{stage.label}</div>
-                    <div className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#8d867d]">{stage.meta}</div>
-                  </div>
-                </li>
-              ))}
-            </ol>
-            <p className="mt-6 font-serif text-[15px] leading-relaxed text-[#6a706a]">Every answer is grounded in retrieved passages. If evidence is weak, VeriDoc corrects the search before answering - and refuses rather than inventing facts when nothing supports the claim.</p>
-          </div>
-        </div>
-      )}
-
-      <main className="lg:pl-[238px]">
-        <header className="flex h-[78px] items-center justify-between border-b border-[#d9d1c4] px-5 sm:px-8 lg:px-12">
-          <div className="flex items-center gap-3 lg:hidden"><PanelLeft className="h-5 w-5 text-[#7d766d]" /><span className="font-serif text-lg">VeriDoc Nexus</span></div>
-          <div className="hidden items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8b857c] sm:flex"><span className="h-1.5 w-1.5 bg-[#b96845]" /> Research workspace <span className="text-[#c5bdb1]">/</span> Case 004</div>
-          <div className="flex items-center gap-3">
-            <div className="mr-2 hidden items-center gap-2 md:flex"><img src="/veridoc-nexus-mark.svg" alt="" className="h-7 w-7 object-contain" /><span className="font-serif text-[17px] tracking-[-0.02em]">VeriDoc <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#77736c]">Nexus</span></span></div>
-            <button onClick={() => setGuideOpen(true)} className="hidden items-center gap-2 border border-[#cec5b8] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-[#6f6a63] transition hover:border-[#1e2625] sm:flex"><CircleHelp className="h-3.5 w-3.5" /> Guide</button>
-            <button onClick={() => setUploadOpen(true)} className="flex items-center gap-2 bg-[#b96845] px-4 py-2.5 text-[12px] font-semibold text-white shadow-[3px_3px_0_#1e2625] transition hover:-translate-y-0.5 hover:shadow-[4px_4px_0_#1e2625] active:translate-y-0 active:shadow-[1px_1px_0_#1e2625]"><UploadCloud className="h-4 w-4" /> Add documents</button>
-            <button onClick={() => setMobileNavOpen(true)} className="p-2 text-[#716a61] lg:hidden"><Menu className="h-5 w-5" /></button>
-          </div>
-        </header>
-
-        <div className="mx-auto max-w-[1480px] px-5 pb-16 pt-8 sm:px-8 lg:px-12 lg:pt-12">
-          <section className="relative overflow-hidden border border-[#d9d1c4] bg-[#e8dfd2] px-6 py-8 sm:px-10 sm:py-10 lg:px-14 lg:py-12">
-            <div className="absolute inset-0 bg-gradient-to-r from-[#e8dfd2] via-[#e8dfd2]/90 to-transparent" />
-            <div className="relative max-w-[690px]">
-              <div className="mb-5 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[#b96845]"><span className="h-px w-7 bg-[#b96845]" /> Evidence desk / live <span className="h-1.5 w-1.5 rounded-full bg-[#6e8b78]" /></div>
-              <h1 className="font-serif text-[clamp(2.5rem,5vw,5.3rem)] leading-[0.93] tracking-[-0.045em] text-[#1e2625]">Ask the corpus.<br /><em className="text-[#b96845]">Keep the proof.</em></h1>
-              <p className="mt-6 max-w-[490px] font-serif text-[17px] leading-relaxed text-[#515952]">An agentic research workspace for questions that need more than an answer. Search the corpus, follow its connections, and see exactly where every claim came from.</p>
-            </div>
-            <div className="absolute bottom-7 right-8 hidden w-[245px] font-mono text-[9px] uppercase leading-relaxed tracking-[0.15em] text-[#82786d] xl:block"><div className="mb-2 flex items-center justify-between border-b border-[#aa9d8e] pb-2"><span>Corpus health</span><span className="text-[#6e8b78]">Not measured</span></div><div className="flex items-center justify-between"><span>Last indexed</span><span>Not exposed</span></div><div className="mt-5 flex items-center gap-2 text-[#8f8175]"><span className="h-2 w-2 bg-[#b96845]" /><span className="h-px flex-1 bg-[#b96845]" /><span className="h-2 w-px bg-[#b96845]" /><span className="h-px flex-1 bg-[#b96845]" /><span className="h-2 w-2 border border-[#b96845]" /><span className="text-[8px]">claim → source → confidence</span></div></div>
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,580px)_minmax(0,1fr)] lg:items-start">
+      {/* left: question, answer, sources */}
+      <div className="flex min-w-0 flex-col gap-3">
+        {/* the cobalt block */}
+        {withheld || phase === "error" ? (
+          <section aria-live="polite" className="border-2 border-coral bg-ink px-5 py-6 sm:px-7">
+            <div className="font-mono text-[12px] uppercase tracking-[0.12em] text-coral">{phase === "error" ? "Request failed" : "No answer given"}</div>
+            {askedQuestion && <p className="mt-3 text-[20px] font-extrabold leading-tight tracking-[-0.01em]">{askedQuestion}</p>}
+            <div className="mt-3 text-[clamp(3rem,10vw,5.5rem)] font-black leading-[0.9] tracking-[-0.045em] text-coral">{phase === "error" ? "Failed." : "Withheld."}</div>
+            <p className="mt-3 max-w-[460px] text-[15px] leading-relaxed text-soft">
+              {phase === "error"
+                ? errorMessage
+                : "Nothing in the corpus backs an answer to this question, so none is claimed. Try rewording it, or add the document that covers it."}
+            </p>
           </section>
+        ) : (
+          <section aria-live="polite" className="bg-cobalt px-5 py-6 text-white sm:px-7 sm:py-7">
+            {phase === "idle" && (
+              <>
+                <div className="font-mono text-[12px] uppercase tracking-[0.12em]">Ask the corpus</div>
+                <h1 className="mt-3 text-[clamp(2.75rem,8vw,5.25rem)] font-black leading-[0.95] tracking-[-0.045em]">
+                  Ask. Keep
+                  <br />
+                  the proof.
+                </h1>
+                <p className="mt-4 max-w-[440px] text-[16px] leading-relaxed">
+                  Search Acts, rules, judgments and filings. Every claim comes back with the page it came from.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[11px] uppercase tracking-[0.08em]">
+                  {statsStatus === "ready" && (
+                    <>
+                      <span>Indian law {formatCount(legalChunks)} chunks</span>
+                      <span>Corporate {formatCount(corporateChunks)} chunks</span>
+                    </>
+                  )}
+                  {statsStatus === "loading" && <span>Loading corpus counts</span>}
+                  {statsStatus === "error" && <span>Backend unreachable</span>}
+                  {statsStatus === "nobackend" && <span>Demo workspace · no backend connected</span>}
+                </div>
+              </>
+            )}
 
-          <section className="grid border-x border-b border-[#d9d1c4] bg-[#f8f5ef] sm:grid-cols-2 lg:grid-cols-4">
-            {corpus.map(([label, value, status], index) => <div key={label} className={`flex items-end justify-between px-5 py-5 ${index !== corpus.length - 1 ? "border-b border-[#d9d1c4] sm:border-r lg:border-b-0" : ""}`}><div><div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8c857c]">{label}</div><div className="mt-2 font-serif text-3xl text-[#1e2625]">{value}</div></div><span className="mb-1 font-mono text-[9px] uppercase tracking-[0.12em] text-[#6e8b78]">{status}</span></div>)}
+            {phase === "running" && (
+              <>
+                <div className="font-mono text-[12px] uppercase tracking-[0.12em]">Tracing evidence</div>
+                <p className="mt-3 text-[22px] font-extrabold leading-tight tracking-[-0.01em]">{question.trim()}</p>
+                <div className="mt-5 flex gap-2" aria-hidden="true">
+                  {[0, 1, 2, 3, 4].map((step) => (
+                    <span key={step} className="h-3 w-full animate-pulse bg-white/80" style={{ animationDelay: `${step * 150}ms` }} />
+                  ))}
+                </div>
+                <p className="mt-4 text-[15px]">Routing the question, retrieving passages, reranking, grading the evidence.</p>
+              </>
+            )}
+
+            {phase === "done" && (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[12px] uppercase tracking-[0.12em]">
+                  <span>{meta.sample ? "Sample answer" : "The question"}</span>
+                  {typeof meta.seconds === "number" && <span>{meta.seconds.toFixed(1)} s</span>}
+                </div>
+                <p className="mt-2 text-[clamp(1.35rem,3.2vw,1.75rem)] font-extrabold leading-[1.1] tracking-[-0.02em]">{askedQuestion}</p>
+                <div
+                  className={`mt-3 whitespace-nowrap font-black leading-[0.86] tracking-[-0.045em] ${
+                    bigStat.length <= 6 ? "text-[clamp(4rem,14vw,7.5rem)]" : "text-[clamp(3rem,10vw,5rem)]"
+                  }`}
+                >
+                  {bigStat}
+                </div>
+                <p className="mt-3 text-[15px] leading-snug">
+                  passages anchored to a page
+                  {meta.retries !== undefined && <> · {meta.retries} {meta.retries === 1 ? "retry" : "retries"}</>}
+                </p>
+              </>
+            )}
           </section>
+        )}
 
-          <div className="mt-10 grid gap-8 xl:grid-cols-[minmax(0,1fr)_365px]">
-            <section>
-              <div className="mb-4 flex items-end justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8c857c]">01 / Research query</div><h2 className="font-serif text-3xl tracking-tight text-[#1e2625]">Open a line of inquiry</h2></div><button onClick={() => setQuestion("")} className="hidden items-center gap-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[#8c857c] hover:text-[#1e2625] sm:flex">Clear <X className="h-3 w-3" /></button></div>
-              <div className="border border-[#cfc6b9] bg-[#fbfaf6] p-5 shadow-[7px_7px_0_#e0d8cd] sm:p-7">
-                <div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.15em] text-[#8c857c]"><span className="bg-[#e7efe8] px-2 py-1 text-[#547461]">Evidence corpus</span><span className="bg-[#f2e8e3] px-2 py-1 text-[#a25d41]">Domain-aware retrieval</span><ChevronDown className="ml-auto h-4 w-4" /></div>
-                <textarea value={question} onChange={(event) => setQuestion(event.target.value)} rows={3} className="w-full resize-none border-0 bg-transparent p-0 font-serif text-[24px] leading-snug text-[#1e2625] outline-none placeholder:text-[#afa79c]" placeholder="Ask a question that deserves evidence..." />
-                <div className="mt-7 border-t border-[#e3ddd3] pt-4"><div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.13em] text-[#8e877e]"><span className="h-2 w-2 bg-[#b96845]" /> Dossier 004 <span className="text-[#c1b8ad]">/</span> source chain armed <span className="ml-auto text-[#6e8b78]">ready</span></div><div className="mb-5 flex items-center gap-2"><span className="font-mono text-[9px] text-[#b96845]">CLAIM</span><span className="h-px flex-1 bg-[#d8cfc3]" /><span className="h-2 w-px bg-[#b96845]" /><span className="font-mono text-[9px] text-[#8e877e]">PASSAGE</span><span className="h-px flex-1 bg-[#d8cfc3]" /><span className="h-2 w-2 rounded-full border border-[#6e8b78]" /><span className="font-mono text-[9px] text-[#6e8b78]">Not scored</span></div><div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-2 font-mono text-[10px] text-[#8e877e]"><Sparkles className="h-3.5 w-3.5 text-[#8e877e]" /> Response-bound evidence retrieval</div><button onClick={askQuestion} disabled={isRunning} className="flex items-center gap-2 bg-[#1e2625] px-5 py-3 text-[12px] font-semibold text-[#f8f4ec] transition hover:bg-[#33403d] disabled:cursor-wait disabled:opacity-70">{isRunning ? "Tracing evidence..." : "Run research"}<ArrowUpRight className="h-4 w-4 text-[#e5a182]" /></button></div></div>
-              </div>
-
-              <div className="mt-9 mb-4 flex items-end justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8c857c]">02 / Evidence packet</div><h2 className="font-serif text-3xl tracking-tight text-[#1e2625]">A grounded answer</h2></div><div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#547461]"><span className="h-2 w-2 rounded-full bg-[#6e8b78]" /> Supported</div></div>
-              <article className="border border-[#cfc6b9] bg-[#fbfaf6] p-5 sm:p-8">
-                <div className="mb-5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#8c857c]"><span className="flex h-5 w-5 items-center justify-center bg-[#b96845] text-[9px] text-white">01</span><span>Claim packet / direct support</span><span className="ml-auto text-[#6e8b78]">verified</span></div>
-                <div className="flex items-start justify-between gap-6">
-                  <div className="answer-markdown max-w-[690px] font-serif text-[20px] leading-[1.52] text-[#2d3733]"><Streamdown>{answer}</Streamdown></div>
-                  <div className="hidden border-l border-[#d9d1c4] pl-5 text-right sm:block"><div className="font-mono text-2xl text-[#b96845]">{confidenceLabel}</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-[#8c857c]">evidence anchored</div></div>
-                </div>
-                <div className="mt-6 flex items-center justify-between border-t border-[#d9d1c4] pt-4"><span className="font-mono text-[10px] text-[#91897e]">{modelUsed ? `Generated by ${modelUsed}` : "Model not reported"}</span><button onClick={() => void copyAnswerWithCitations()} className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#b96845] hover:text-[#1e2625]">Copy with citations</button></div>
-              </article>
-            </section>
-
-            <aside className="space-y-8">
-              <ClaimEvidenceMap sources={visibleSources} />
-              <section>
-                <div className="mb-4 flex items-end justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8c857c]">03 / Agent trace</div><h2 className="font-serif text-2xl tracking-tight">Reasoning path</h2></div><span className="font-mono text-[10px] text-[#8c857c]">1.8s total</span></div>
-                <div className="border border-[#cfc6b9] bg-[#f8f5ef] p-5">{stages.map((stage, index) => <div key={stage.label} className="relative flex gap-3 pb-5 last:pb-0"><div className="relative z-10 flex h-5 w-5 shrink-0 items-center justify-center border border-[#bbb1a4] bg-[#f8f5ef]">{stage.status === "complete" ? <Check className="h-3 w-3 text-[#547461]" /> : <span className="h-2 w-2 animate-pulse bg-[#b96845]" />}</div>{index < stages.length - 1 && <div className="absolute left-[9px] top-5 h-[calc(100%-12px)] w-px bg-[#d6cdc0]" />}<div className="-mt-0.5"><div className="text-[12px] font-medium text-[#303a36]">{stage.label}</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-[#8d867d]">{stage.meta}</div></div></div>)}</div>
-              </section>
-
-              <section>
-                <div className="mb-4 flex items-end justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#8c857c]">04 / Source passages</div><h2 className="font-serif text-2xl tracking-tight">Proof, in context</h2></div><div className="flex flex-wrap items-center gap-2">{filterOptions.map((filter) => <button key={filter} onClick={() => setSourceFilter(filter)} className={`font-mono text-[9px] uppercase tracking-[0.1em] ${sourceFilter === filter ? "text-[#b96845]" : "text-[#9a9186]"}`}>{filter}</button>)}</div></div>
-                <div className="space-y-2">
-                  {visibleSources.length === 0 && <p className="font-serif text-sm text-[#8c857c]">No source passages yet - run a query to populate this list.</p>}
-                  {visibleSources.map((source) => {
-                    const isExpanded = expandedSourceId === source.id;
-                    return (
-                      <div key={source.id} className="source-card border border-[#d9d1c4] bg-[#f8f5ef] transition hover:border-[#b96845]">
-                        <button onClick={() => setExpandedSourceId(isExpanded ? null : source.id)} className="group w-full p-4 text-left text-[#3b4540]">
-                          <div className="flex items-start gap-3">
-                            <span className={`font-mono text-[10px] ${source.color === "copper" ? "text-[#b96845]" : source.color === "sage" ? "text-[#547461]" : "text-[#65716e]"}`}>{source.id}</span>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-[12px] leading-snug text-[#3b4540]">{source.title}</div>
-                              <div className="mt-2 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.08em] text-[#958d83]"><span>{source.file}</span><span>·</span><span>{source.page}</span><span className="ml-auto text-[#6e8b78]">{source.tag}</span></div>
-                            </div>
-                            <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-[#b1a89d] transition group-hover:text-[#b96845] ${isExpanded ? "rotate-180" : ""}`} />
-                          </div>
-                        </button>
-                        {isExpanded && <div className="border-t border-[#e5ded4] px-4 py-3 font-serif text-[13px] leading-relaxed text-[#4c514d]">{source.excerpt}</div>}
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-
-              <section className="border-t border-[#d9d1c4] pt-6"><div className="mb-3 flex items-center justify-between"><div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8c857c]">Recent ingestion</div><Clock3 className="h-3.5 w-3.5 text-[#b96845]" /></div><div className="flex items-center justify-between py-2"><div className="flex items-center gap-2"><BookOpen className="h-4 w-4 text-[#8e877e]" /><span className="text-[12px]">Central Acts seed set</span></div><span className="font-mono text-[10px] text-[#6e8b78]">ready</span></div>{uploadedFiles.map((name) => <div key={name} className="flex items-center justify-between border-t border-[#e5ded4] py-2"><div className="flex min-w-0 items-center gap-2"><FileUp className="h-4 w-4 shrink-0 text-[#b96845]" /><span className="truncate text-[12px]">{name}</span></div><span className="font-mono text-[10px] text-[#b96845]">queued</span></div>)}<button onClick={() => setUploadOpen(true)} className="mt-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#b96845] hover:text-[#1e2625]"><Plus className="h-3.5 w-3.5" /> Queue a source</button></section>
-            </aside>
+        {/* composer */}
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void askQuestion();
+          }}
+          className="border border-edge bg-panel"
+        >
+          <label htmlFor="question" className="sr-only">
+            Your question
+          </label>
+          <textarea
+            id="question"
+            ref={textareaRef}
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            onKeyDown={(event) => {
+              if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                event.preventDefault();
+                void askQuestion();
+              }
+            }}
+            rows={3}
+            placeholder={phase === "idle" ? "Ask a question that deserves evidence..." : "Ask another question"}
+            className="block w-full resize-none bg-transparent p-4 text-[18px] leading-snug text-fg outline-none placeholder:text-mute"
+          />
+          {phase === "idle" && !question && (
+            <div className="flex flex-wrap gap-2 px-4 pb-3" role="group" aria-label="Example questions">
+              {EXAMPLES.map((example) => (
+                <button
+                  key={example}
+                  type="button"
+                  onClick={() => {
+                    setQuestion(example);
+                    textareaRef.current?.focus();
+                  }}
+                  className="border border-edge px-3 py-1.5 text-left text-[13px] leading-snug text-soft transition-colors hover:border-lime hover:text-fg"
+                >
+                  {example}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3">
+            <div className="flex items-center gap-3 font-mono text-[11px] text-mute">
+              {question && (
+                <button type="button" onClick={() => setQuestion("")} className="flex items-center gap-1 uppercase tracking-[0.1em] hover:text-fg">
+                  Clear <X className="h-3 w-3" />
+                </button>
+              )}
+              <span className="hidden sm:inline">Ctrl + Enter to run</span>
+            </div>
+            <button
+              type="submit"
+              disabled={phase === "running" || !question.trim()}
+              className="flex h-11 items-center gap-2 bg-lime px-5 text-[14px] font-extrabold uppercase tracking-[0.04em] text-lime-ink transition-colors hover:bg-[#e2ff6e] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {phase === "running" ? "Tracing evidence..." : "Run research"}
+              <ArrowUpRight className="h-4 w-4" />
+            </button>
           </div>
-        </div>
-      </main>
+        </form>
 
-      {uploadOpen && <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#1e2625]/35 p-5" onClick={() => setUploadOpen(false)}><div className="w-full max-w-[560px] border border-[#cfc6b9] bg-[#f8f5ef] p-6 shadow-[10px_10px_0_#1e2625] sm:p-8" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between"><div><div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[#b96845]">Ingestion dossier</div><h2 className="font-serif text-3xl">Add source documents</h2><p className="mt-2 max-w-[390px] font-serif text-[15px] leading-relaxed text-[#6a706a]">Queue Acts, Rules, amendments, or judgments. The backend will hash, extract, and index them without rebuilding the corpus.</p></div><button onClick={() => setUploadOpen(false)} className="text-[#8c857c] hover:text-[#1e2625]"><X className="h-5 w-5" /></button></div><select value={uploadDomain} onChange={(event) => setUploadDomain(event.target.value as "legal" | "corporate")} className="mt-7 w-full border border-[#b9aea0] bg-[#f2eee7] px-3 py-3 text-[12px] text-[#3b4540]"><option value="legal">Indian law collection</option><option value="corporate">Corporate / handbook collection</option></select><label className="mt-7 flex cursor-pointer flex-col items-center justify-center border border-dashed border-[#b9aea0] bg-[#f2eee7] px-5 py-10 text-center transition hover:border-[#b96845] hover:bg-[#f0e7df]"><input type="file" accept="application/pdf,.docx" multiple className="sr-only" onChange={(event) => { handleFiles(event.target.files); setUploadOpen(false); }} /><FileUp className="h-8 w-8 text-[#b96845]" /><span className="mt-3 text-[13px] font-medium">Drop PDFs or DOCX files here</span><span className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[#958d83]">PDF · DOCX · multiple files supported</span></label><div className="mt-5 flex items-center gap-2 font-mono text-[10px] text-[#8c857c]"><ShieldCheck className="h-3.5 w-3.5 text-[#6e8b78]" /> SHA-256 provenance is preserved at ingestion</div></div></div>}
+        {/* the answer text */}
+        {phase === "done" && !withheld && (
+          <article aria-label="Answer" className="border border-line bg-sunken">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3 font-mono text-[11px] uppercase tracking-[0.12em]">
+              <span className="text-mute">Answer</span>
+              <span className={`flex items-center gap-2 ${fullyAnchored ? "text-lime" : "text-soft"}`}>
+                <span className={`h-2 w-2 ${fullyAnchored ? "bg-lime" : "border border-soft"}`} />
+                {meta.sample ? "Sample" : fullyAnchored ? "Supported" : "Partly anchored"}
+              </span>
+            </div>
+            <div className="answer-markdown px-5 py-5 text-[17px] leading-[1.6] text-fg sm:px-6">
+              <Streamdown>{answer}</Streamdown>
+            </div>
+            {meta.sample && (
+              <p className="mx-5 mb-4 border border-dashed border-edge px-3 py-2 text-[13px] leading-snug text-mute sm:mx-6">
+                This is a fixed sample about Article 21. It is shown because no backend is connected, and it does not answer the question you typed.
+              </p>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-3">
+              <span className="font-mono text-[11px] text-mute">
+                {modelUsed ? `Generated by ${modelUsed}` : "Model not reported"}
+                {meta.grade ? ` · grade ${meta.grade}` : ""}
+              </span>
+              <button onClick={() => void copyAnswerWithCitations()} className="h-9 border border-edge px-3 font-mono text-[11px] uppercase tracking-[0.1em] text-fg transition-colors hover:border-lime hover:text-lime">
+                Copy with citations
+              </button>
+            </div>
+          </article>
+        )}
+
+        {phase === "done" && liveSources.length > 0 && (
+          <EvidenceList
+            sources={visibleSources}
+            allSources={liveSources}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            filter={sourceFilter}
+            onFilter={(value) => {
+              setSourceFilter(value);
+              const next = value === "All" ? liveSources : liveSources.filter((source) => source.domain === value);
+              setSelectedId(next[0]?.id ?? null);
+            }}
+          />
+        )}
+      </div>
+
+      {/* right: the proof */}
+      <div className="min-w-0 lg:sticky lg:top-[72px]">
+        <SourceReader sources={phase === "done" ? visibleSources : []} selectedId={selectedId} onSelect={setSelectedId} />
+        {!HAS_BACKEND && phase === "idle" && (
+          <p className="mt-3 text-[13px] leading-snug text-mute">Demo workspace. Run research to see a fixed sample answer.</p>
+        )}
+      </div>
     </div>
   );
 }
