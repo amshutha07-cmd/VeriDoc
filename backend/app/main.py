@@ -9,6 +9,16 @@ from app.api.routes_ingest import router as ingest_router
 from app.api.routes_ask import router as ask_router
 from app.api.routes_graph import router as graph_router
 from app.api.routes_eval import router as eval_router
+from fastapi.middleware.cors import CORSMiddleware
+app = FastAPI(title="Self-Correcting RAG API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://veridoc-phi.vercel.app", "http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app = FastAPI(title="Self-Correcting RAG API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
