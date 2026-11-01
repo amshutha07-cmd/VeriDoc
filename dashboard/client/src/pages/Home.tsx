@@ -31,6 +31,7 @@ export default function Home() {
   const [question, setQuestion] = useState("");
   const [askedQuestion, setAskedQuestion] = useState("");
   const [answer, setAnswer] = useState("");
+  const [unsupported, setUnsupported] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [liveSources, setLiveSources] = useState<EvidenceSource[]>([]);
@@ -84,7 +85,7 @@ export default function Home() {
         const remoteAnswer = payload?.answer ?? payload?.response ?? payload?.result?.answer ?? "";
         const sources = normalizeEvidence(payload);
         setAskedQuestion(asked);
-        setAnswer(typeof remoteAnswer === "string" ? remoteAnswer : "");
+        setAnswer(typeof remoteAnswer === "string" ? remoteAnswer : ""); setUnsupported(payload?.evidence_status === "uncertain");
         setModelUsed(payload?.model || null);
         setLiveSources(sources);
         setSourceFilter("All");
@@ -98,7 +99,7 @@ export default function Home() {
       } else {
         await new Promise((resolve) => window.setTimeout(resolve, 850));
         setAskedQuestion(SAMPLE_QUESTION);
-        setAnswer(SAMPLE_ANSWER);
+        setAnswer(SAMPLE_ANSWER); setUnsupported(false);
         setModelUsed(null);
         setLiveSources(SAMPLE_SOURCES);
         setSourceFilter("All");
@@ -275,9 +276,9 @@ export default function Home() {
           <article aria-label="Answer" className="border border-line bg-sunken">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3 font-mono text-[11px] uppercase tracking-[0.12em]">
               <span className="text-mute">Answer</span>
-              <span className={`flex items-center gap-2 ${fullyAnchored ? "text-lime" : "text-soft"}`}>
-                <span className={`h-2 w-2 ${fullyAnchored ? "bg-lime" : "border border-soft"}`} />
-                {meta.sample ? "Sample" : fullyAnchored ? "Supported" : "Partly anchored"}
+              <span className={`flex items-center gap-2 ${unsupported ? "text-coral" : fullyAnchored ? "text-lime" : "text-soft"}`}>
+                <span className={`h-2 w-2 ${unsupported ? "bg-coral" : fullyAnchored ? "bg-lime" : "border border-soft"}`} />
+                {meta.sample ? "Sample" : unsupported ? "Not directly supported" : fullyAnchored ? "Supported" : "Partly anchored"}
               </span>
             </div>
             <div className="answer-markdown px-5 py-5 text-[17px] leading-[1.6] text-fg sm:px-6">
