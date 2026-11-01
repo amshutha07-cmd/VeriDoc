@@ -67,3 +67,6 @@ backend/weights_search.txt
 /dashboard/.manus-logs/
 /backend/model_field_search.txt
 /backend/weights_search.txt
+
+# local-only files
+backend/run_user_tests_backup.py
