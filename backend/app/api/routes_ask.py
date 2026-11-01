@@ -131,6 +131,8 @@ async def ask_json(request: Request, req: AskRequest):
             "grade": final_state.get("grade", ""),
             "scores": final_state.get("scores"),
             "retries": final_state.get("retries", 0),
+            "evidence_status": final_state.get("evidence_status", ""),
+            "evidence_confidence": final_state.get("evidence_confidence"),
             "domain": final_state.get("domain", ""),
             "question_type": final_state.get("question_type", ""),
             "model": final_state.get("model", ""),
