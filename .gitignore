@@ -38,5 +38,32 @@ backend/data/legal_corpus/manifests/*.legacy-404.jsonl
 backend/data/legal_corpus/manifests/*.all-failed.jsonl
 pro.md
 PROJECT_WALKTHROUGH.md
+dashboard/veridoc-ui.patch
+dashboard/ideas.md
+dashboard/todo.md
+dashboard/.manus
+dashboard/.manus-logs
+docs/00_PROJECT_MAP.md
+docs/modules/
+eval_run.py
+peek.py
+prefix.py
+deploy-hf.ps1
+backend/model_field_search.txt
+backend/weights_search.txt
  
  
+
+# local scratch, notes and one-off scripts
+/Dockerfile
+/deploy-hf.ps1
+/eval_run.py
+/peek.py
+/prefix.py
+/docs/00_PROJECT_MAP.md
+/docs/modules/
+/dashboard/veridoc-ui.patch
+/dashboard/.manus/
+/dashboard/.manus-logs/
+/backend/model_field_search.txt
+/backend/weights_search.txt

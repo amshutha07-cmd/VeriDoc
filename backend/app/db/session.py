@@ -1,2 +1,0 @@
-# TODO: DB connection
-pass
