@@ -16,6 +16,22 @@ Cite the source file and page for every factual claim.
 """
 
 
+REFUSAL_MARKERS = (
+    "could not find this in the documents",
+    "cannot answer",
+    "can't answer",
+    "unable to answer",
+    "does not contain any information",
+    "do not contain any information",
+    "no relevant information",
+)
+
+
+def _looks_like_refusal(answer: str) -> bool:
+    text = answer.lower()
+    return any(marker in text for marker in REFUSAL_MARKERS)
+
+
 def generate(state: RAGState) -> dict:
     context = format_ctx(state.get("docs", []) or [])
     question = state["question"]
@@ -51,7 +67,11 @@ Question: {question}
         if retry_answer.strip():
             answer = retry_answer
 
-    return {"answer": answer}
+    result = {"answer": answer}
+    if _looks_like_refusal(answer):
+        result["evidence_status"] = "uncertain"
+        result["evidence_confidence"] = 0.25
+    return result
 
 
 if __name__ == "__main__":

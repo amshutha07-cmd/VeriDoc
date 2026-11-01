@@ -12,6 +12,10 @@ DEFAULT_MODELS = [
     "openrouter/free",
     "google/gemini-2.5-flash",
 ]
+
+MAX_TOKENS = int(os.getenv("VERIDOC_MAX_TOKENS", "1500"))
+
+
 def _model_chain() -> list[str]:
     configured = os.getenv("VERIDOC_MODELS", "")
     models = [item.strip() for item in configured.split(",") if item.strip()]
@@ -58,6 +62,7 @@ class FallbackChatModel:
                 base_url="https://openrouter.ai/api/v1",
                 temperature=0,
                 max_retries=0,
+                max_tokens=MAX_TOKENS,
              )
             for model in self.models
         ]
