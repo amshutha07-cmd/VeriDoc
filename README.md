@@ -75,38 +75,28 @@ The frontend is hosted on Vercel and the backend runs as a Docker container on G
 
 You need Python 3.11, Node.js with [pnpm](https://pnpm.io), and an [OpenRouter](https://openrouter.ai) API key.
 
-**1. Clone the repo**
-
 ```bash
 git clone https://github.com/amshutha07-cmd/VeriDoc.git
 cd VeriDoc
-```
 
-**2. Download the vector index.** The indexed data (handbook and legal collections) is too big for git, so it is attached to the [latest release](https://github.com/amshutha07-cmd/VeriDoc/releases/latest) as `veridoc-index.zip`. Unzip it inside `backend/` so you end up with `backend/chroma_db/`.
-
-**3. Start the backend**
-
-```bash
+# backend
 cd backend
 python -m venv venv
 source venv/bin/activate        # Windows: .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-cp .env.example .env            # then put your OPENROUTER_API_KEY in .env
+cp .env.example .env            # add your OPENROUTER_API_KEY
 uvicorn app.main:app --reload --port 8000
-```
 
-The first start is slow because the embedding model and the reranker are downloaded once.
-
-**4. Start the frontend** (in a second terminal)
-
-```bash
+# frontend (in a second terminal)
 cd dashboard
 pnpm install
 echo "VITE_VERIDOC_API_URL=http://localhost:8000" > .env.local
 pnpm dev
 ```
 
-Open http://localhost:5173 (use `localhost`, not `127.0.0.1`, because the backend only allows specific origins).
+Open http://localhost:5173 (use `localhost`, not `127.0.0.1`, because the backend only allows specific origins). The first backend start is slow because the embedding model and the reranker are downloaded once.
+
+The demo data (about 20k handbook chunks and 1.4k legal chunks) is attached to the [latest release](https://github.com/amshutha07-cmd/VeriDoc/releases/latest) as `veridoc-index.zip`. Unzip it into `backend/` to get the same collections as the live demo, or skip it and upload your own documents from the Ingest page.
 
 ## Project structure
 
@@ -120,8 +110,8 @@ dashboard/           Vite + React frontend
 docs/                Screenshots
 ```
 
-## Limitations
+## Notes
 
-- Portfolio prototype with no authentication or per-user isolation, so only upload public, non-sensitive documents.
-- The first request after idle time is slow (cold start).
-- Answers are limited to what is in the indexed documents; anything outside is refused by design.
+- Upload only public, non-sensitive documents. Uploaded files are indexed into the shared collections.
+- The first request after the backend has been idle is slower (cold start), because the models load again.
+- Answers come only from the indexed documents. Questions outside them are refused by design.
