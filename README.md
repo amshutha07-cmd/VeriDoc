@@ -115,3 +115,7 @@ docs/                Screenshots
 - Upload only public, non-sensitive documents. Uploaded files are indexed into the shared collections.
 - The first request after the backend has been idle is slower (cold start), because the models load again.
 - Answers come only from the indexed documents. Questions outside them are refused by design.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
