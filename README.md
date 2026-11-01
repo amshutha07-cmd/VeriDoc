@@ -64,27 +64,60 @@ Input is PDF and DOCX files, loaded page by page and split into chunks. Two Chro
 | Embeddings | all-MiniLM-L6-v2 (local), text-embedding-3-small (via OpenRouter) |
 | Reranker | Sentence Transformers cross-encoder |
 | LLM gateway | OpenRouter |
-| Frontend | Vite (Ask, Registry, Graph, Ingest, Evals) |
+| Frontend | React + Vite (Ask, Registry, Graph, Ingest, Evals) |
 | Infrastructure | Docker, Google Cloud Run, Vercel |
 
 ## Deployment
 
 The frontend is hosted on Vercel and the backend runs as a Docker container on Google Cloud Run (`asia-south1`). The frontend calls the backend over HTTP, and the backend only accepts requests from allowed origins (CORS allowlist).
 
-## Run locally
+## Quickstart
+
+You need Python 3.11, Node.js with [pnpm](https://pnpm.io), and an [OpenRouter](https://openrouter.ai) API key.
+
+**1. Clone the repo**
 
 ```bash
-# backend
-cd backend
-python -m venv venv && source venv/bin/activate   # Windows: .\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-export OPENROUTER_API_KEY=<your-key>
-uvicorn app.main:app --reload --port 8000
+git clone https://github.com/amshutha07-cmd/VeriDoc.git
+cd VeriDoc
+```
 
-# frontend
-cd frontend
-npm install
-npm run dev
+**2. Download the vector index.** The indexed data (handbook and legal collections) is too big for git, so it is attached to the [latest release](https://github.com/amshutha07-cmd/VeriDoc/releases/latest) as `veridoc-index.zip`. Unzip it inside `backend/` so you end up with `backend/chroma_db/`.
+
+**3. Start the backend**
+
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate        # Windows: .\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+cp .env.example .env            # then put your OPENROUTER_API_KEY in .env
+uvicorn app.main:app --reload --port 8000
+```
+
+The first start is slow because the embedding model and the reranker are downloaded once.
+
+**4. Start the frontend** (in a second terminal)
+
+```bash
+cd dashboard
+pnpm install
+echo "VITE_VERIDOC_API_URL=http://localhost:8000" > .env.local
+pnpm dev
+```
+
+Open http://localhost:5173 (use `localhost`, not `127.0.0.1`, because the backend only allows specific origins).
+
+## Project structure
+
+```
+backend/app/
+  api/               FastAPI routes (ask, ingest, graph, eval)
+  graph/             LangGraph workflow and nodes (retrieve, rerank, grade, rewrite, generate)
+  ingestion/         Document loading, chunking, embeddings, vector store
+  legal_ingestion/   Indexing for the legal collection
+dashboard/           Vite + React frontend
+docs/                Screenshots
 ```
 
 ## Limitations
