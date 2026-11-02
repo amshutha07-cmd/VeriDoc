@@ -10,7 +10,7 @@ from app.api.routes_ask import router as ask_router
 from app.api.routes_graph import router as graph_router
 from app.api.routes_eval import router as eval_router
 
-app = FastAPI(title="Self-Correcting RAG API")
+app = FastAPI(title="Self-Correcting RAG API", docs_url=None, redoc_url=None, openapi_url=None)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

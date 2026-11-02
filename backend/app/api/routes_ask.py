@@ -96,7 +96,8 @@ async def ask(request: Request, req: AskRequest):
 
         except Exception as e:
             # send a clean error event instead of letting the connection die silently
-            yield {"event": "error", "data": json.dumps({"message": str(e)})}
+            print(f"/ask failed: {type(e).__name__}: {e}")
+            yield {"event": "error", "data": json.dumps({"message": "The request could not be completed. Please try again in a moment."})}
 
     return EventSourceResponse(event_generator())
 
@@ -139,4 +140,5 @@ async def ask_json(request: Request, req: AskRequest):
             "graph_results": final_state.get("graph_results", []),
         }
     except Exception as exc:
-        return {"answer": "", "evidence": [], "docs": [], "error": str(exc)}
+        print(f"/ask/json failed: {type(exc).__name__}: {exc}")
+        return {"answer": "", "evidence": [], "docs": [], "error": "The request could not be completed. Please try again in a moment."}
