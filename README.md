@@ -8,6 +8,8 @@ VeriDoc answers questions over PDF and DOCX corpora, and it treats retrieval qua
 
 ![VeriDoc answering a question with citations and 2 correction retries](docs/demo.png)
 
+![VeriDoc flagging an answer the evidence does not directly support](docs/demo-refusal.png)
+
 ## Features
 
 - Answers with source file and page citations, and shows the passage each claim came from
