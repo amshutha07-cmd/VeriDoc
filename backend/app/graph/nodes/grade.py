@@ -96,7 +96,8 @@ def _strong_local_evidence(question: str, context: str) -> bool:
         r"\b(?:19|20)\d{2}\b|\b\d+(?:\.\d+)?%?\b",
         question_lower,
     )
-    if any(number not in context_lower for number in requested_numbers):
+    if any(not re.search(r"(?<![\w.])" + re.escape(number) + r"(?![\w])", context_lower)
+           for number in requested_numbers):
         return False
 
     return lexical_ratio >= 0.60
