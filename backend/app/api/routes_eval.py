@@ -4,7 +4,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from statistics import mean
-from fastapi import APIRouter, HTTPException
+import os
+from fastapi import APIRouter, HTTPException, Request
+from app.limiter import limiter
 from app.core.config import settings
 from app.evaluation.deterministic_eval import run_system
 from app.evaluation.baseline_graph import baseline_graph
@@ -44,11 +46,14 @@ def _run_evaluation() -> None:
         _result_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
         _state.update({"status": "completed", "result": result, "error": None})
     except Exception as exc:
-        _state.update({"status": "failed", "result": None, "error": str(exc)})
+        _state.update({"status": "failed", "result": None, "error": "Evaluation failed. See the server logs."})
 
 
 @router.post("/eval/run")
-def start_evaluation():
+@limiter.limit("2/hour")
+def start_evaluation(request: Request):
+    if os.getenv("ENABLE_EVAL_RUN", "") != "1":
+        raise HTTPException(status_code=403, detail="Evaluation runs are disabled on the public demo.")
     if _state["status"] == "running":
         raise HTTPException(status_code=409, detail="Evaluation is already running")
     _state.update({"status": "running", "result": None, "error": None})
