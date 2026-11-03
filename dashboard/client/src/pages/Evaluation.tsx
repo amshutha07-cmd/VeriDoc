@@ -10,6 +10,7 @@ type EvalState = { status: string; error?: string | null; result?: { completed_a
 const num = (value: unknown): number | undefined => (typeof value === "number" && Number.isFinite(value) ? value : undefined);
 const pct = (value: number | undefined) => (value === undefined ? "—" : `${Math.round(value * 100)}%`);
 const secs = (value: number | undefined) => (value === undefined ? "—" : `${value.toFixed(1)}s`);
+const SHOW_RUN = import.meta.env.VITE_SHOW_EVAL_RUN === "1";
 const STATUS_LABEL: Record<string, string> = { not_run: "Not run yet", running: "Running", completed: "Completed", failed: "Failed", loading: "Loading" };
 
 const RATE_ROWS: { key: "evidence_coverage" | "answer_coverage" | "citation_rate"; label: string }[] = [
@@ -108,13 +109,13 @@ export default function Evaluation() {
   return (
     <div className="flex flex-col gap-3">
       <PageHero eyebrow="Evaluation" title="Does the retry loop earn its cost?">
-        Run the saved test set on purpose and compare plain retrieval with the corrective loop. The backend saves each run.
+        Saved results from the Apple test set, comparing plain retrieval with the corrective loop.
       </PageHero>
 
       <div className="flex flex-wrap items-center gap-2">
-        <button onClick={() => void runEvaluation()} disabled={busy || !API_URL} className="h-12 bg-lime px-6 text-[13px] font-extrabold uppercase tracking-[0.04em] text-lime-ink hover:bg-[#e2ff6e] disabled:cursor-not-allowed disabled:opacity-50">
+        {SHOW_RUN && (<button onClick={() => void runEvaluation()} disabled={busy || !API_URL} className="h-12 bg-lime px-6 text-[13px] font-extrabold uppercase tracking-[0.04em] text-lime-ink hover:bg-[#e2ff6e] disabled:cursor-not-allowed disabled:opacity-50">
           {state.status === "running" ? "Evaluation running…" : "Run evaluation"}
-        </button>
+        </button>)}
         <button onClick={() => void loadStatus()} className="h-12 border border-edge px-6 text-[13px] font-extrabold uppercase tracking-[0.04em] hover:border-fg">
           Refresh status
         </button>
@@ -132,7 +133,7 @@ export default function Evaluation() {
       {!result && state.status !== "running" && !state.error && state.status !== "loading" && (
         <section className="border border-line bg-sunken px-5 py-6">
           <h2 className="text-[28px] font-extrabold tracking-[-0.02em]">Evaluation not run yet</h2>
-          <p className="mt-2 max-w-[640px] text-[15px] leading-snug text-soft">Click Run evaluation to execute the existing deterministic Apple test set. Results will be saved by the backend and shown here after completion.</p>
+          <p className="mt-2 max-w-[640px] text-[15px] leading-snug text-soft">No saved evaluation results are available yet.</p>
         </section>
       )}
 

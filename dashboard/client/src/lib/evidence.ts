@@ -81,7 +81,7 @@ export function claimText(excerpt: string): string {
 
 /** Splits a passage into its first sentence (highlighted in the reader) and the rest. */
 export function splitLead(text: string): [string, string] {
-  const match = text.match(/^(.{20,}?[.!?])(\s|$)/s);
+  const match = text.match(/^([\s\S]{20,}?[.!?])(\s|$)/);
   if (!match) return [text, ""];
   return [match[1], text.slice(match[1].length)];
 }
