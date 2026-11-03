@@ -98,7 +98,7 @@ pnpm dev
 
 Open http://localhost:5173 (use `localhost`, not `127.0.0.1`, because the backend only allows specific origins). The first backend start is slow because the embedding model and the reranker are downloaded once.
 
-The demo data (about 20k handbook chunks and 1.4k legal chunks) is attached to the [latest release](https://github.com/amshutha07-cmd/VeriDoc/releases/latest) as `veridoc-index.zip`. Unzip it into `backend/` to get the same collections as the live demo, or skip it and upload your own documents from the Ingest page.
+The demo data (about 20k handbook chunks and 1.4k legal chunks) is attached to the [latest release](https://github.com/amshutha07-cmd/VeriDoc/releases/latest): unzip `veridoc-index.zip` into `backend/`, and put `graph_store.pkl` in `backend/data/` (create the folder if it is missing). Together they give you the same collections and article lookup as the live demo. You can also skip them and upload your own documents from the Ingest page.
 
 ## Project structure
 
