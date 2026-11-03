@@ -168,7 +168,7 @@ def _search_corporate(graph, parsed):
 
 def graph_search(state):
     domain = state.get("domain")
-    if domain not in ("indian_law", "corporate"):
+    if domain != "indian_law":
         return {"graph_results": []}
 
     graph = VeriDocGraph(storage_path="data/graph_store.pkl")
