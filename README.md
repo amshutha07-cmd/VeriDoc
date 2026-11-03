@@ -112,6 +112,10 @@ dashboard/           Vite + React frontend
 docs/                Screenshots
 ```
 
+## Results
+
+On a 16-question check (8 answerable, 8 not covered by the documents) run with gpt-4o-mini, VeriDoc answered 8 of 8 answerable questions and refused 8 of 8 unsupported ones, with a median response time of about 7 seconds. The question set is small and was used while fixing the system, so treat it as a sanity check, not a benchmark.
+
 ## Notes
 
 - Upload only public, non-sensitive documents. Uploaded files are indexed into the shared collections.
