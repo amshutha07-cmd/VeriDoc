@@ -74,3 +74,5 @@ backend/run_user_tests_backup.py
 /eval_results.json
 
 /eval_results_before.json
+
+/eval_results_grader.json
