@@ -12,6 +12,7 @@ VeriDoc operates in two modes over legal, regulatory, and corporate corpora:
 ![VeriDoc answering a question with citations and 2 correction retries](docs/demo.png)
 
 ![VeriDoc flagging an answer the evidence does not directly support](docs/demo-refusal.png)
+![Autonomous Multi-Agent Audit Console](docs/demo-audit.png)
 
 ## Features
 
