@@ -1,9 +1,10 @@
 /* Ask the corpus. A cobalt answer block, the claims with their sources, and the source page open beside them.
    Backend contract is unchanged: POST {API}/ask/json with { question }, answer in `answer`, passages in `evidence` or `docs`. */
 import { useMemo, useRef, useState } from "react";
+import { Link } from "wouter";
 import { toast } from "sonner";
 import { Streamdown } from "streamdown";
-import { ArrowUpRight, X } from "lucide-react";
+import { ArrowUpRight, ShieldAlert, X } from "lucide-react";
 import EvidenceList from "@/components/EvidenceList";
 import SourceReader from "@/components/SourceReader";
 import { API_BASE, HAS_BACKEND, errorDetail, formatCount } from "@/lib/api";
@@ -48,7 +49,6 @@ export default function Home() {
   );
 
   const anchoredCount = visibleSources.filter(hasPage).length;
-  const finished = phase === "done" || phase === "error";
   const withheld = phase === "done" && (liveSources.length === 0 || !answer.trim());
   const fullyAnchored = visibleSources.length > 0 && anchoredCount === visibleSources.length;
 
@@ -73,19 +73,20 @@ export default function Home() {
         const payload = response.headers.get("content-type")?.includes("text/event-stream")
           ? extractSsePayload(rawBody)
           : (() => {
-              try {
-                return JSON.parse(rawBody);
-              } catch {
-                return null;
-              }
-            })();
+            try {
+              return JSON.parse(rawBody);
+            } catch {
+              return null;
+            }
+          })();
         if (!payload) throw new Error("The backend sent a response this workspace could not read.");
         if (payload.error) throw new Error(String(payload.error));
 
         const remoteAnswer = payload?.answer ?? payload?.response ?? payload?.result?.answer ?? "";
         const sources = normalizeEvidence(payload);
         setAskedQuestion(asked);
-        setAnswer(typeof remoteAnswer === "string" ? remoteAnswer : ""); setUnsupported(payload?.evidence_status === "uncertain");
+        setAnswer(typeof remoteAnswer === "string" ? remoteAnswer : "");
+        setUnsupported(payload?.evidence_status === "uncertain");
         setModelUsed(payload?.model || null);
         setLiveSources(sources);
         setSourceFilter("All");
@@ -99,7 +100,8 @@ export default function Home() {
       } else {
         await new Promise((resolve) => window.setTimeout(resolve, 850));
         setAskedQuestion(SAMPLE_QUESTION);
-        setAnswer(SAMPLE_ANSWER); setUnsupported(false);
+        setAnswer(SAMPLE_ANSWER);
+        setUnsupported(false);
         setModelUsed(null);
         setLiveSources(SAMPLE_SOURCES);
         setSourceFilter("All");
@@ -117,7 +119,7 @@ export default function Home() {
   }
 
   async function copyAnswerWithCitations() {
-    const citations = visibleSources.map((source, index) => `[${index + 1}] ${source.file} - ${source.page}`).join("\n");
+    const citations = visibleSources.map((source, index) => `[${index + 1}] ${source.file} · ${source.page}`).join("\n");
     const text = `${answer}\n\nSources:\n${citations || "No sources available."}`;
     try {
       await navigator.clipboard.writeText(text);
@@ -193,9 +195,8 @@ export default function Home() {
                 </div>
                 <p className="mt-2 text-[clamp(1.35rem,3.2vw,1.75rem)] font-extrabold leading-[1.1] tracking-[-0.02em]">{askedQuestion}</p>
                 <div
-                  className={`mt-3 whitespace-nowrap font-black leading-[0.86] tracking-[-0.045em] ${
-                    bigStat.length <= 6 ? "text-[clamp(4rem,14vw,7.5rem)]" : "text-[clamp(3rem,10vw,5rem)]"
-                  }`}
+                  className={`mt-3 whitespace-nowrap font-black leading-[0.86] tracking-[-0.045em] ${bigStat.length <= 6 ? "text-[clamp(4rem,14vw,7.5rem)]" : "text-[clamp(3rem,10vw,5rem)]"
+                    }`}
                 >
                   {bigStat}
                 </div>
@@ -270,6 +271,24 @@ export default function Home() {
             </button>
           </div>
         </form>
+
+        {/* Autonomous Multi-Agent Audit Launch Card */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border border-edge bg-panel px-4 py-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.1em] text-lime">
+              <ShieldAlert className="h-3.5 w-3.5" /> Autonomous Multi-Agent Audit
+            </div>
+            <p className="mt-1 text-[13px] leading-snug text-soft">
+              Batch-audit Indian vendor contracts & invoices (GSTIN, SAC/HSN, Section 194J TDS, Z-score/MAD math & HITL approval).
+            </p>
+          </div>
+          <Link
+            href="/audit"
+            className="flex h-9 shrink-0 items-center gap-1.5 border border-lime px-3 font-mono text-[11px] font-bold uppercase tracking-[0.08em] text-lime transition-colors hover:bg-lime hover:text-lime-ink"
+          >
+            Open Audit Engine <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
 
         {/* the answer text */}
         {phase === "done" && !withheld && (

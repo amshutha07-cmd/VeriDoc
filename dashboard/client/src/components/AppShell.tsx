@@ -1,7 +1,7 @@
 /* The frame around every page: header with navigation, "Guide" and "Add documents", a bottom tab bar on phones, and the dialogs. */
 import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { CircleHelp, Clock3, Database, Layers3, Network, Search, UploadCloud } from "lucide-react";
+import { CircleHelp, Clock3, Database, Layers3, Network, Search, ShieldAlert, UploadCloud } from "lucide-react";
 import GuideDialog from "@/components/GuideDialog";
 import LogoMark from "@/components/LogoMark";
 import UploadDialog from "@/components/UploadDialog";
@@ -10,6 +10,7 @@ import { HAS_BACKEND } from "@/lib/api";
 
 const NAV = [
   { label: "Ask the corpus", short: "Ask", href: "/", Icon: Search },
+  { label: "Autonomous Audit", short: "Audit", href: "/audit", Icon: ShieldAlert },
   { label: "Registry", short: "Registry", href: "/corpus", Icon: Database },
   { label: "Graph", short: "Graph", href: "/graph", Icon: Network },
   { label: "Ingestion", short: "Ingest", href: "/ingestion", Icon: Clock3 },
@@ -86,7 +87,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       <nav
         aria-label="Workspace"
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-ink pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-line bg-ink pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         {NAV.map(({ short, href, Icon }) => {
           const active = location === href;

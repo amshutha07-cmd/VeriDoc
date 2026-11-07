@@ -1,4 +1,4 @@
-/* VeriDoc Nexus: one shell (header, upload and guide dialogs) around five pages. */
+/* VeriDoc Nexus: one shell (header, upload and guide dialogs) around five pages plus audit. */
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
@@ -11,6 +11,7 @@ import CorpusRegistry from "./pages/CorpusRegistry";
 import KnowledgeGraph from "./pages/KnowledgeGraph";
 import IngestionJobs from "./pages/IngestionJobs";
 import Evaluation from "./pages/Evaluation";
+import { AuditDashboard } from "./pages/AuditDashboard";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/graph" component={KnowledgeGraph} />
       <Route path="/ingestion" component={IngestionJobs} />
       <Route path="/evaluation" component={Evaluation} />
+      <Route path="/audit" component={AuditDashboard} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
