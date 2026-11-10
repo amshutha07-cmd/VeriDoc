@@ -1,5 +1,7 @@
-# backend/app/guardrails/sandwich_guard.py
+﻿# backend/app/guardrails/sandwich_guard.py
+import base64
 import re
+unicodedata = __import__("unicodedata")
 from typing import Any, Dict, List
 
 PII_PATTERNS = {
@@ -23,9 +25,32 @@ INJECTION_PATTERNS = [
     re.compile(r"auto_approve\s*=\s*true", re.IGNORECASE),
 ]
 
+def _decode_base64_blob(text: str) -> str:
+    """Detects and decodes potential Base64 strings in the payload."""
+    words = text.split()
+    decoded_additions = []
+    for w in words:
+        cleaned_w = re.sub(r'[^A-Za-z0-9+/=]', '', w)
+        if len(cleaned_w) >= 16 and len(cleaned_w) % 4 == 0:
+            try:
+                dec = base64.b64decode(cleaned_w.encode('utf-8')).decode('utf-8', errors='ignore')
+                if any(k in dec.lower() for k in ("ignore", "override", "instructions", "compliant")):
+                    decoded_additions.append(dec)
+            except Exception:
+                pass
+    return text + (" " + " ".join(decoded_additions) if decoded_additions else "")
+
+def _normalize_leetspeak(text: str) -> str:
+    """Normalizes leetspeak obfuscations (e.g., 1->i, 3->e, 0->o, 4->a, 5->s)."""
+    trans = str.maketrans({"1": "i", "3": "e", "0": "o", "4": "a", "5": "s", "7": "t", "8": "b"})
+    return text.translate(trans)
 
 def run_input_guardrail(raw_text: str) -> Dict[str, Any]:
-    """Redacts sensitive PII and blocks indirect prompt injections hidden in documents."""
+    """Canonicalizes text (NFKC, Base64 decode, leetspeak normalization), redacts PII, and blocks prompt injections."""
+    normalized = unicodedata.normalize("NFKC", raw_text)
+    expanded = _decode_base64_blob(normalized)
+    canonical = _normalize_leetspeak(expanded)
+
     sanitized = raw_text
     redacted_count = 0
 
@@ -36,7 +61,7 @@ def run_input_guardrail(raw_text: str) -> Dict[str, Any]:
 
     injection_hits: List[str] = []
     for pattern in INJECTION_PATTERNS:
-        if pattern.search(sanitized):
+        if pattern.search(canonical) or pattern.search(sanitized):
             injection_hits.append(pattern.pattern)
             sanitized = pattern.sub("[BLOCKED_PROMPT_INJECTION]", sanitized)
 

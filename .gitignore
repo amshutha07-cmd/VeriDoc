@@ -85,3 +85,9 @@ backend/app/chroma_db/
 gitleaks-report.json
 scan.txt
 scan2.txt
+
+# SQLite & Audit DBs
+*.db
+*.db-wal
+*.db-shm
+

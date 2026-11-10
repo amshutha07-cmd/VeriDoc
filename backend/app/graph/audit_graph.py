@@ -1,4 +1,4 @@
-# backend/app/graph/audit_graph.py
+﻿# backend/app/graph/audit_graph.py
 import hashlib
 import json
 import os
@@ -51,30 +51,43 @@ audit_checkpointer = MemorySaver()
 _DECOMPOSE_CACHE: Dict[str, List[Dict[str, Any]]] = {}
 
 
+def _parse_table_rows_to_clauses(text: str) -> List[str]:
+    """Extracts clauses from Markdown tables or semicolon-delimited lines."""
+    table_lines = [line.strip() for line in text.splitlines() if "|" in line and not re.match(r"^\|?[-:\s|]+\|?$", line.strip())]
+    if len(table_lines) >= 2:
+        return [f"Table Row: {t}" for t in table_lines[1:]]
+    return []
+
+
 def _deterministic_clause_fallback(doc_text: str) -> List[Dict[str, Any]]:
-    parts = re.split(r"(?=Section\s+\d+\.\d+)", doc_text.strip())
-    parts = [p.strip() for p in parts if p.strip() and re.match(r"^Section\s+\d+", p.strip(), re.I)]
-    if not parts:
-        parts = [p.strip() for p in re.split(r"(?=Section\s+\d+\.\d+)", doc_text.strip()) if p.strip()] or [doc_text.strip()]
+    # Support both structured markdown tables and standard Section/Clause blocks
+    table_parts = _parse_table_rows_to_clauses(doc_text)
+    if table_parts:
+        parts = table_parts
+    else:
+        raw_parts = re.split(r"(?=(?:Section\s+\d+(?:\.\d+)*|Clause\s+\d+(?:\.\d+)*))", doc_text.strip(), flags=re.IGNORECASE)
+        parts = [p.strip() for p in raw_parts if len(p.strip()) > 15]
+        if not parts:
+            parts = [doc_text.strip()]
 
     claims: List[Dict[str, Any]] = []
-    for idx, chunk in enumerate(parts, start=1):
-        title_match = re.match(r"(Section\s+\d+(?:\.\d+)?[^:]*):", chunk)
+    for idx, chunk in enumerate(parts[:8], start=1):
+        title_match = re.match(r"((?:Section|Clause|Table Row)\s+\d+(?:\.\d+)*[^:.\n]*)", chunk, flags=re.IGNORECASE)
         section_title = title_match.group(1).strip() if title_match else f"Clause-{idx}"
         lower_chunk = chunk.lower()
 
-        cleaned_chunk = re.sub(r"^Section\s+\d+(?:\.\d+)?[^:]*:", "", chunk, flags=re.IGNORECASE)
+        # Multi-currency and percentage numeric extraction
         num_match = re.search(
-            r"(?:\$|₹|INR\s*|USD\s*)?(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s*(%|percent|usd|inr|days)?",
-            cleaned_chunk,
+            r"(?:\$|₹|INR\s*|USD\s*)?(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s*(%|percent|bps|usd|inr)?",
+            chunk,
             re.IGNORECASE,
         )
         val = float(num_match.group(1).replace(",", "")) if num_match else None
-        unit = (num_match.group(2) if num_match and num_match.group(2) else ("USD" if "$" in chunk else "scalar"))
+        unit = num_match.group(2).lower() if (num_match and num_match.group(2)) else ("USD" if any(c in chunk for c in ("$", "USD")) else ("%" if "%" in chunk else "scalar"))
 
-        if "sla" in lower_chunk or "uptime" in lower_chunk or "service level" in lower_chunk:
+        if any(k in lower_chunk for k in ("sla", "uptime", "service level", "availability")):
             c_type = "sla_deadline"
-        elif any(k in lower_chunk for k in ("$", "₹", "charge", "retainer", "invoice", "fee", "gst", "tds", "sac")):
+        elif any(k in lower_chunk for k in ("$", "₹", "inr", "charge", "retainer", "invoice", "fee", "gst", "tds", "sac")):
             c_type = "numeric_financial"
         else:
             c_type = "semantic_policy"
@@ -87,7 +100,7 @@ def _deterministic_clause_fallback(doc_text: str) -> List[Dict[str, Any]]:
                 raw_text=chunk,
                 numeric_value=val,
                 unit=unit,
-                baseline_query=f"What is the compliance policy requirement for {section_title}?",
+                baseline_query=f"What is the statutory compliance requirement for {section_title}?",
             ).model_dump()
         )
     return claims
@@ -111,22 +124,19 @@ def decompose_document_node(state: AuditOrchestratorState) -> Dict[str, Any]:
     if doc_hash in _DECOMPOSE_CACHE:
         return {"extracted_claims": _DECOMPOSE_CACHE[doc_hash]}
 
-    # Fast-path deterministic decomposition (<2ms) when standard "Section X.Y:" clauses exist
-    if len(re.findall(r"Section\s+\d+(?:\.\d+)?", doc_text, re.IGNORECASE)) >= 1:
+    # Fast-path deterministic parsing when standard section headings or tables exist
+    has_structure = bool(re.search(r"(?:Section|Clause)\s+\d+(?:\.\d+)?", doc_text, re.IGNORECASE) or "|" in doc_text)
+    if has_structure:
         claims_dicts = _deterministic_clause_fallback(doc_text)
         _DECOMPOSE_CACHE[doc_hash] = claims_dicts
         return {"extracted_claims": claims_dicts}
 
     prompt = (
-        "You are an enterprise compliance and financial document decomposer.\n"
-        "Extract discrete, verifiable claims, clauses, SLA commitments, and financial line items "
-        "from the document text below.\n"
-        "Return ONLY valid JSON matching this schema:\n"
-        '{"document_summary": "...", "extracted_claims": [{"claim_id": "CLM-01", '
-        '"claim_type": "semantic_policy" | "numeric_financial" | "sla_deadline", '
-        '"section_title": "...", "raw_text": "...", "numeric_value": 9.5, '
-        '"unit": "percent", "baseline_query": "..."}]}\n\n'
-        f"DOCUMENT TEXT:\n{doc_text[:12000]}"
+        "You are an enterprise compliance document decomposer.\n"
+        "Extract discrete verifiable claims into valid JSON matching this schema:\n"
+        '{"document_summary": "...", "extracted_claims": [{"claim_id": "CLM-01", "claim_type": "numeric_financial", '
+        '"section_title": "...", "raw_text": "...", "numeric_value": 9.5, "unit": "percent", "baseline_query": "..."}]}\n\n'
+        f"DOCUMENT:\n{doc_text[:12000]}"
     )
     try:
         llm = get_llm()
@@ -135,9 +145,7 @@ def decompose_document_node(state: AuditOrchestratorState) -> Dict[str, Any]:
         json_match = re.search(r"\{.*\}", raw_content, re.DOTALL)
         parsed_json = json.loads(json_match.group(0) if json_match else raw_content)
         validated = DecompositionOutput.model_validate(parsed_json)
-        claims_dicts = [c.model_dump() for c in validated.extracted_claims]
-        if not claims_dicts:
-            claims_dicts = _deterministic_clause_fallback(doc_text)
+        claims_dicts = [c.model_dump() for c in validated.extracted_claims] or _deterministic_clause_fallback(doc_text)
     except Exception:
         claims_dicts = _deterministic_clause_fallback(doc_text)
 
@@ -183,8 +191,6 @@ def verify_claim_worker(state: ClaimWorkerState) -> Dict[str, List[Dict[str, Any
         baseline_limits=baseline_limits,
     )
 
-    # Smart C-RAG Routing: Only invoke slow LLM C-RAG synthesis on semantic policy claims;
-    # for deterministic math/SLA/tax clauses, verify directly via local Cross-Encoder in <40ms!
     if claim.get("claim_type") == "semantic_policy":
         crag_input = {
             "question": claim["baseline_query"],
@@ -311,20 +317,10 @@ def synthesize_audit_report_node(state: AuditOrchestratorState) -> Dict[str, Any
     }
 
 
-_DISPATCHED_IDEMPOTENCY_KEYS = set()
-
-
 def execute_remediation_node(state: AuditOrchestratorState) -> Dict[str, Any]:
     payload = dict(state.get("remediation_payload", {}))
-    idem_key = payload.get("idempotency_key", "")
-
-    if idem_key in _DISPATCHED_IDEMPOTENCY_KEYS:
-        payload["dispatch_status"] = "SKIPPED_DUPLICATE_IDEMPOTENT_REPLAY"
-    else:
-        _DISPATCHED_IDEMPOTENCY_KEYS.add(idem_key)
-        payload["executed_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        payload["dispatch_status"] = "WEBHOOK_DISPATCHED"
-
+    payload["executed_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    payload["dispatch_status"] = "WEBHOOK_DISPATCHED"
     return {
         "remediation_payload": payload,
         "human_approval_status": state.get("human_approval_status", "APPROVED"),
@@ -333,7 +329,6 @@ def execute_remediation_node(state: AuditOrchestratorState) -> Dict[str, Any]:
 
 def build_audit_orchestrator_graph(use_hitl_interrupt: bool = False):
     builder = StateGraph(AuditOrchestratorState)
-
     builder.add_node("input_guardrail", input_guardrail_node)
     builder.add_node("decompose_document", decompose_document_node)
     builder.add_node("verify_claim_worker", verify_claim_worker)
