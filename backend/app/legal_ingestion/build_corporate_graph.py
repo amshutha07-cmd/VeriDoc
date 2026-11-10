@@ -4,7 +4,7 @@ from app.core.config import settings
 from app.graph_store.graph_handler import VeriDocGraph
 from pathlib import Path
 
-OUTPUT = Path("data/graph_store.pkl")
+OUTPUT = Path("data/graph_store.json")
 
 REAL_FILINGS = {
     "amazon_2025_annual_report.pdf",

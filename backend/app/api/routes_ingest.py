@@ -1,4 +1,5 @@
-﻿"""Upload and incrementally index documents into the correct collection."""
+"""Upload and incrementally index documents into the correct collection."""
+import os
 import shutil
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
@@ -14,6 +15,7 @@ LEGAL_COLLECTION = "veridoc_legal"
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_FILES = 3
 MAX_PAGES = 300
+INGEST_ENABLED = os.getenv("INGEST_ENABLED", "true").lower() == "true"
 
 
 def _store_for(domain: str) -> Chroma:
@@ -37,6 +39,8 @@ async def ingest(
     files: list[UploadFile] = File(...),
     domain: str = Form("legal"),
 ):
+    if not INGEST_ENABLED:
+        raise HTTPException(status_code=403, detail="Uploads are disabled on this public demo. Run VeriDoc locally to ingest your own documents.")
     domain = domain.lower().strip()
     if domain not in {"legal", "corporate"}:
         raise HTTPException(status_code=400, detail="domain must be legal or corporate")

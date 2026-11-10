@@ -33,7 +33,7 @@ def graph_search(request: Request, req: GraphSearchRequest):
 @limiter.limit("30/minute")
 def graph_explore(request: Request):
     from app.graph_store.graph_handler import VeriDocGraph
-    g = VeriDocGraph(storage_path="data/graph_store.pkl")
+    g = VeriDocGraph(storage_path="data/graph_store.json")
     nodes = [
         {"id": n, **data}
         for n, data in g.graph.nodes(data=True)

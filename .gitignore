@@ -81,3 +81,7 @@ backend/run_user_tests_backup.py
 
 backend/audit_telemetry.jsonl
 backend/app/chroma_db/
+
+gitleaks-report.json
+scan.txt
+scan2.txt

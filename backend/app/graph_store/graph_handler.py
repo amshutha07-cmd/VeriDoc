@@ -1,8 +1,11 @@
-﻿import networkx as nx
-import os, pickle
+import json
+import os
+
+import networkx as nx
+
 
 class VeriDocGraph:
-    def __init__(self, storage_path="backend/data/graph_store.pkl"):
+    def __init__(self, storage_path="backend/data/graph_store.json"):
         self.storage_path = storage_path
         self.graph = nx.MultiDiGraph()
         self.load()
@@ -14,18 +17,22 @@ class VeriDocGraph:
         self.graph.add_edge(source, target, key=rel_type, rel_type=rel_type, **(properties or {}))
 
     def get_nexus_connections(self, entity_name, depth=2):
-        """AMAZING FEATURE: Finds multi-hop connections human investigators miss."""
+        """Find multi-hop connections around an entity (everything within `depth` hops)."""
         if entity_name not in self.graph:
             return []
-        # Finds everything connected to the company, and everything connected to those things.
         return list(nx.single_source_shortest_path_length(self.graph, entity_name, cutoff=depth).keys())
 
     def save(self):
-        os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
-        with open(self.storage_path, 'wb') as f:
-            pickle.dump(self.graph, f)
+        directory = os.path.dirname(self.storage_path)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+        tmp_path = self.storage_path + ".tmp"
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(nx.node_link_data(self.graph, edges="edges"), f, ensure_ascii=False, default=str)
+        os.replace(tmp_path, self.storage_path)
 
     def load(self):
         if os.path.exists(self.storage_path):
-            with open(self.storage_path, 'rb') as f:
-                self.graph = pickle.load(f)
+            with open(self.storage_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.graph = nx.node_link_graph(data, directed=True, multigraph=True, edges="edges")

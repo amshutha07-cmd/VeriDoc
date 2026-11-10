@@ -1,9 +1,9 @@
-﻿import json
+import json
 from pathlib import Path
 from app.graph_store.graph_handler import VeriDocGraph
 
 INPUT = Path("data/legal_corpus/chunks/acts-pages.jsonl")
-OUTPUT = Path("data/graph_store.pkl")
+OUTPUT = Path("data/graph_store.json")
 TARGET = "A1988-59.pdf"
 SECTION_PAGES_FILE = Path(__file__).parent / "section_pages_a1988.json"
 

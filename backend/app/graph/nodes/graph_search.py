@@ -1,4 +1,4 @@
-﻿from typing import Any
+from typing import Any
 import re
 from app.graph_store.graph_handler import VeriDocGraph
 
@@ -171,7 +171,7 @@ def graph_search(state):
     if domain != "indian_law":
         return {"graph_results": []}
 
-    graph = VeriDocGraph(storage_path="data/graph_store.pkl")
+    graph = VeriDocGraph(storage_path="data/graph_store.json")
     parsed = _parse_entities(state.get("entities", []))
 
     if domain == "indian_law":
